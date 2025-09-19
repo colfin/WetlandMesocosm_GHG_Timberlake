@@ -4032,8 +4032,8 @@ mantel(methBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
 # List of distance matrices
 matrices <- list(
   "Iron reduction" = FeReductionBC,
-  "Assimilatory sulfate reduction" = Assim_SO4_redBC,
-  "Dissimilatory sulfate reduction" = Dissim_SO4_redBC,
+  "Assimilatory\n sulfate reduction" = Assim_SO4_redBC,
+  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redBC,
   "Sox pathway" = ThioSOXBC,
   "Denitrification" = denitBC,
   "DNRA" = DNRABC,
@@ -4112,6 +4112,7 @@ Mantel_heat_overall <- ggplot(combined, aes(Var1, Var2)) +
   theme_minimal() +
   labs(x = "", y = "", title = "") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  axis.text = element_text(size = 12, face = "bold"),
   axis.ticks.x = element_blank(),
   axis.ticks.y = element_blank(),
   panel.grid.major = element_blank(),  # remove major grid lines
@@ -4312,12 +4313,12 @@ mantel(methRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, se
 mantel(methRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
 ```
 
-```{r Mantel heatmap: Wet Hist}
+```{r Mantel matrix: Wet History}
 # Distance matrices, wet history only
 matrices <- list(
   "Iron reduction" = FeReductionRA_WetHist_BC,
-  "Assimilatory sulfate reduction" = Assim_SO4_redRA_WetHist_BC,
-  "Dissimilatory sulfate reduction" = Dissim_SO4_redRA_WetHist_BC,
+  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_WetHist_BC,
+  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_WetHist_BC,
   Methanogenesis = methRA_WetHist_BC
 )
 
@@ -4380,36 +4381,14 @@ combined1$is_diagonal <- as.character(combined1$Var1) == as.character(combined1$
 
 # Set text color: black for diagonal, white otherwise
 combined1$text_color <- ifelse(combined1$is_diagonal, "black", "white")
-
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_1 <- ggplot(combined1, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined1, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined1, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined1, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(0,1)) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Wet History") +
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  theme(axis.text.x = element_blank(),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_1
 ```
 
 ```{r Mantel heatmap: Dry Hist}
 # Distance matrices, dry history only
 matrices <- list(
   "Iron reduction" = FeReductionRA_DryHist_BC,
-  "Assimilatory sulfate reduction" = Assim_SO4_redRA_DryHist_BC,
-  "Dissimilatory sulfate reduction" = Dissim_SO4_redRA_DryHist_BC,
+  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_DryHist_BC,
+  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_DryHist_BC,
   Methanogenesis = methRA_DryHist_BC
 )
 
@@ -4472,36 +4451,14 @@ combined2$is_diagonal <- as.character(combined2$Var1) == as.character(combined2$
 
 # Set text color: black for diagonal, white otherwise
 combined2$text_color <- ifelse(combined2$is_diagonal, "black", "white")
-
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_2 <- ggplot(combined2, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined2, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined2, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined2, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", begin = 0, end = 1) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Dry History") +
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_2
 ```
 
 ```{r Mantel heatmap: Wet Treatment}
 # Distance matrices, wet treatment only
 matrices <- list(
   "Iron reduction" = FeReductionRA_WetTreat_BC,
-  "Assimilatory sulfate reduction" = Assim_SO4_redRA_WetTreat_BC,
-  "Dissimilatory sulfate reduction" = Dissim_SO4_redRA_WetTreat_BC,
+  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_WetTreat_BC,
+  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_WetTreat_BC,
   Methanogenesis = methRA_WetTreat_BC
 )
 
@@ -4564,35 +4521,14 @@ combined3$is_diagonal <- as.character(combined3$Var1) == as.character(combined3$
 
 # Set text color: black for diagonal, white otherwise
 combined3$text_color <- ifelse(combined3$is_diagonal, "black", "white")
-
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_3 <- ggplot(combined3, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined3, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined3, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined3, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", begin = 0, end = 1) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Wet Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_3
 ```
 
 ```{r Mantel heatmap: Dry Treatment}
 # Distance matrices, dry treatment only
 matrices <- list(
   "Iron reduction" = FeReductionRA_DryTreat_BC,
-  "Assimilatory sulfate reduction" = Assim_SO4_redRA_DryTreat_BC,
-  "Dissimilatory sulfate reduction" = Dissim_SO4_redRA_DryTreat_BC,
+  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_DryTreat_BC,
+  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_DryTreat_BC,
   Methanogenesis = methRA_DryTreat_BC
 )
 
@@ -4655,19 +4591,102 @@ combined4$is_diagonal <- as.character(combined4$Var1) == as.character(combined4$
 
 # Set text color: black for diagonal, white otherwise
 combined4$text_color <- ifelse(combined4$is_diagonal, "black", "white")
+```
 
+```{r Global r min and r max for viridis scale}
+# Step 1: Get global min and max r values
+global_r_min <- min(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
+global_r_max <- max(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
+```
+
+```{r Heatmap 1: Wet History}
+# Plot heatmap with masked lower triangle
+MantelHeatHydro_1 <- ggplot(combined1, aes(Var1, Var2)) +
+  geom_tile(data = subset(combined1, mask), fill = "white", color = "white") +
+  geom_tile(data = subset(combined1, !mask), aes(fill = r), color = "white") +
+  geom_text(data = subset(combined1, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
+  scale_color_identity()+  # use actual color values from the data
+  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
+  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
+  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
+  theme_minimal() +
+  labs(x = "", y = "", title = "Wet History") +
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  theme(axis.text.x = element_blank(),
+  axis.text = element_text(size = 12, face = "bold"),
+  axis.ticks.x = element_blank(),
+  axis.ticks.y = element_blank(),
+  panel.grid.major = element_blank(),  # remove major grid lines
+  panel.grid.minor = element_blank(),  # remove minor grid lines
+  axis.line = element_blank()          # optional: remove axis lines
+)
+
+MantelHeatHydro_1
+```
+
+```{r Heatmap 2: Dry History}
+# Plot heatmap with masked lower triangle
+MantelHeatHydro_2 <- ggplot(combined2, aes(Var1, Var2)) +
+  geom_tile(data = subset(combined2, mask), fill = "white", color = "white") +
+  geom_tile(data = subset(combined2, !mask), aes(fill = r), color = "white") +
+  geom_text(data = subset(combined2, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
+  scale_color_identity()+  # use actual color values from the data
+  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
+  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
+  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
+  theme_minimal() +
+  labs(x = "", y = "", title = "Dry History") +
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
+  axis.text = element_text(size = 12, face = "bold"),
+  axis.ticks.x = element_blank(),
+  axis.ticks.y = element_blank(),
+  panel.grid.major = element_blank(),  # remove major grid lines
+  panel.grid.minor = element_blank(),  # remove minor grid lines
+  axis.line = element_blank()          # optional: remove axis lines
+)
+
+MantelHeatHydro_2
+```
+
+```{r Heatmap 3: Wet Treatment}
+# Plot heatmap with masked lower triangle
+MantelHeatHydro_3 <- ggplot(combined3, aes(Var1, Var2)) +
+  geom_tile(data = subset(combined3, mask), fill = "white", color = "white") +
+  geom_tile(data = subset(combined3, !mask), aes(fill = r), color = "white") +
+  geom_text(data = subset(combined3, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
+  scale_color_identity()+  # use actual color values from the data
+  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
+  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
+  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
+  theme_minimal() +
+  labs(x = "", y = "", title = "Wet Treatment") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  axis.text = element_text(size = 12, face = "bold"),
+  axis.ticks.x = element_blank(),
+  axis.ticks.y = element_blank(),
+  panel.grid.major = element_blank(),  # remove major grid lines
+  panel.grid.minor = element_blank(),  # remove minor grid lines
+  axis.line = element_blank()          # optional: remove axis lines
+)
+
+MantelHeatHydro_3
+```
+
+```{r Heatmap 4: Dry Treatment}
 # Plot heatmap with masked lower triangle
 MantelHeatHydro_4 <- ggplot(combined4, aes(Var1, Var2)) +
   geom_tile(data = subset(combined4, mask), fill = "white", color = "white") +
   geom_tile(data = subset(combined4, !mask), aes(fill = r), color = "white") +
   geom_text(data = subset(combined4, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
   scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", begin = 0, end = 1) +
+  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
   scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
   scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
   theme_minimal() +
   labs(x = "", y = "", title = "Dry Treatment") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  axis.text = element_text(size = 12, face = "bold"),
   axis.text.y = element_blank(),
   axis.ticks.x = element_blank(),
   axis.ticks.y = element_blank(),
@@ -4678,33 +4697,6 @@ MantelHeatHydro_4 <- ggplot(combined4, aes(Var1, Var2)) +
 
 MantelHeatHydro_4
 ```
-
-```{r Global r min and r max for viridis scale}
-# Step 1: Get global min and max r values
-global_r_min <- min(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
-global_r_max <- max(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
-
-# Step 2: Use these limits in each plot (this goes inside plotting chunks which should go below this chunk)
-scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max))
-
-```
-
-```{r Heatmap 1: Wet History}
-
-```
-
-```{r Heatmap 2: Dry History}
-
-```
-
-```{r Heatmap 3: Wet Treatment}
-
-```
-
-```{r Heatmap 4: Dry Treatment}
-
-```
-
 
 ```{r 4-panel Hydrology Mantel Heatmaps}
 MantelHeatHydro_ALL <- ggarrange(MantelHeatHydro_1, MantelHeatHydro_2, MantelHeatHydro_3, MantelHeatHydro_4, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T, align = "hv")
