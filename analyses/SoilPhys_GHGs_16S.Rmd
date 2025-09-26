@@ -1270,10 +1270,10 @@ CO2_wilcox.DF <- as.data.frame(CO2_wilcox)
 # Plotting:
 plot.CO2.flux.NPvP <- ggplot(select_fluxes_combined_w_T0, aes(x=plant, y=f0_CO2)) +
   facet_wrap(~date_format, nrow = 1, ncol = 5)+
-                     geom_boxplot(aes(color=plant), outlier.shape = NA) +
-                     geom_point(aes(color=plant, shape=plant), size = 2, position = position_jitterdodge()) +
-  scale_color_manual(values=c("#E69F00","#009E73"), labels = c("No Plant", "Plant"), name="")+
-  scale_shape_manual(values=c(19, 17), labels = c("No Plant", "Plant"), name="")+
+                     geom_boxplot(color="black", outlier.shape = NA) +
+                     geom_point(aes(color=treatment, shape=history_plant), size = 2, position = position_jitterdodge()) +
+  scale_color_manual(values=c("#997700","#6699CC","#004488"), labels = c("Dry", "Interim", "Wet"), name="Treatment")+
+  scale_shape_manual(labels = c("Dry_No Plant", "Dry_Plant", "Interim_No Plant", "Interim_Plant", "Wet_No Plant", "Wet_Plant"), values = c(0, 15, 2, 17, 1, 19), name="History_Plant")+
   theme_bw() +
   #Remove plot grid lines
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
@@ -1286,8 +1286,8 @@ plot.CO2.flux.NPvP <- ggplot(select_fluxes_combined_w_T0, aes(x=plant, y=f0_CO2)
           labs(x = "", y = expression(paste("mg CO"[2]," m"^{-2}, " h"^{-1})), title="") +
   scale_x_discrete(labels=c("", ""))+
   theme(rect=element_rect(fill="transparent"))+
-  theme(plot.background = element_rect(color=NA))+
-  stat_compare_means(method = "wilcox.test", paired = T, label = "p.signif", label.y.npc = "center", label.x.npc = "center",size = 10, hide.ns = T)
+  theme(plot.background = element_rect(color=NA))
+  #stat_compare_means(method = "wilcox.test", paired = T, label = "p.signif", label.y.npc = "center", label.x.npc = "center",size = 10, hide.ns = T)
  
 plot.CO2.flux.NPvP
 ```
@@ -1328,11 +1328,11 @@ plot.N2O.flux.NPvP
 ```
 
 ```{r Combined GHG Boxplot}
-CombPlot_flux_NPvP <- ggarrange(plot.CH4.flux.NPvP, plot.N2O.flux.NPvP, labels = c("(a)", "(b)"), ncol = 1, nrow = 2, legend = "right", common.legend = T, align = "hv")
+CombPlot_flux_NPvP <- ggarrange(plot.CH4.flux.NPvP, plot.CO2.flux.NPvP, plot.N2O.flux.NPvP, labels = c("(a)", "(b)","(c)"), ncol = 1, nrow = 3, legend = "right", common.legend = T, align = "hv")
 
 CombPlot_flux_NPvP
 
-#ggsave("../figures/Ecosphere_pub/GHG_NPvP/CH4_N2O_suppFig.tiff", plot=CombPlot_flux_NPvP, device="tiff", scale=1, width=14, height=9, dpi=600, limitsize=TRUE, bg="white")
+#ggsave("../figures/Ecosphere_pub/GHG_NPvP/CH4_N2O_suppFig.tiff", plot=CombPlot_flux_NPvP, device="tiff", scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
 ```
 
 ## Flux w T0: Treatment and Kruskal boxplots
