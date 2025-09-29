@@ -2136,18 +2136,26 @@ IRIS_GHG_start_fin$redox.percent.formatted <- IRIS_GHG_start_fin$redox.percent.p
 
 
 ```{r CH4 redox regression}
+# Check linear models:
 ch4.lm.start <- lm(f0_CH4 ~ redox.percent.formatted, data=IRIS_GHG_start_fin, subset = date_format == "13-Jun")
 summary(ch4.lm.start)
 
 ch4.lm.finish <- lm(f0_CH4 ~ redox.percent.formatted, data=IRIS_GHG_start_fin, subset = date_format == "11-Aug")
 summary(ch4.lm.finish)
 
+# To use open and closed shapes, must create a combined category for History and Plant:
+IRIS_GHG_start_fin$history_plant <- as.factor(c(paste(IRIS_GHG_start_fin$history, IRIS_GHG_start_fin$plant, sep = "_")))
+
+# Filter data for geom_smooth only where p < 0.1
+ch4_smooth_data <- IRIS_GHG_start_fin %>% filter(time == "Start (Week 0)")
+
+# Plot
 ch4.redox.regress.plot <- ggplot(IRIS_GHG_start_fin, x=redox.percent.formatted, y=f0_CH4)  +
   facet_wrap(~time, nrow = 1, ncol = 2)+
-                    geom_point(aes(x=redox.percent.formatted, y=f0_CH4, color=treatment, shape=plant), size = 2) +
+                    geom_point(aes(x=redox.percent.formatted, y=f0_CH4, color=treatment, shape=history_plant), size = 2) +
   scale_color_manual(values=c("#997700","#6699CC","#004488"), labels = c("Dry", "Interim", "Wet"), name="Treatment")+
-  scale_shape_manual(values=c(1,19), labels = c("No Plant", "Plant"), name="")+
-  geom_smooth(aes(x=redox.percent.formatted, y=f0_CH4), formula = y ~ x, method=lm, se=T, color="black")+
+  scale_shape_manual(labels = c("Dry_No Plant", "Dry_Plant", "Interim_No Plant", "Interim_Plant", "Wet_No Plant", "Wet_Plant"), values = c(0, 15, 2, 17, 1, 19), name="History_Plant")+
+  geom_smooth(data = ch4_smooth_data, aes(x=redox.percent.formatted, y=f0_CH4), formula = y ~ x, method=lm, se=T, color="black")+
   stat_poly_eq(aes(x=redox.percent.formatted, y=f0_CH4, label = paste(after_stat(adj.rr.label), after_stat(p.value.label), sep = "*\", \"*")), data = IRIS_GHG_start_fin, formula = y ~ x, method = "lm", label.y = "top",label.x = "right")+
   theme_bw()  +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -2171,12 +2179,16 @@ summary(co2.lm.start)
 co2.lm.finish <- lm(f0_CO2 ~ redox.percent.formatted, data=IRIS_GHG_start_fin, subset = date_format == "11-Aug")
 summary(co2.lm.finish)
 
+# Filter data for geom_smooth only where p < 0.1
+co2_smooth_data <- IRIS_GHG_start_fin %>% filter(time == "Finish (Week 8)")
+
+# Plot
 co2.redox.regress.plot <- ggplot(IRIS_GHG_start_fin, x=redox.percent.formatted, y=f0_CO2)  +
   facet_wrap(~time, nrow = 1, ncol = 2)+
-                    geom_point(aes(x=redox.percent.formatted, y=f0_CO2, color=treatment, shape=plant), size = 2) +
+                    geom_point(aes(x=redox.percent.formatted, y=f0_CO2, color=treatment, shape=history_plant), size = 2) +
   scale_color_manual(values=c("#997700","#6699CC","#004488"), labels = c("Dry", "Interim", "Wet"), name="Treatment")+
-  scale_shape_manual(values=c(1,19), labels = c("No Plant", "Plant"), name="")+
-  geom_smooth(aes(x=redox.percent.formatted, y=f0_CO2), formula = y ~ x, method=lm, se=T, color="black")+
+  scale_shape_manual(labels = c("Dry_No Plant", "Dry_Plant", "Interim_No Plant", "Interim_Plant", "Wet_No Plant", "Wet_Plant"), values = c(0, 15, 2, 17, 1, 19), name="History_Plant")+
+  geom_smooth(data = co2_smooth_data, aes(x=redox.percent.formatted, y=f0_CO2), formula = y ~ x, method=lm, se=T, color="black")+
   stat_poly_eq(aes(x=redox.percent.formatted, y=f0_CO2, label = paste(after_stat(adj.rr.label), after_stat(p.value.label), sep = "*\", \"*")), data = IRIS_GHG_start_fin, formula = y ~ x, method = "lm", label.y = "top",label.x = "right")+
   theme_bw()  +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -2202,10 +2214,10 @@ summary(n2o.lm.finish)
 
 n2o.redox.regress.plot <- ggplot(IRIS_GHG_start_fin, x=redox.percent.formatted, y=f0_N2O)  +
   facet_wrap(~time, nrow = 1, ncol = 2)+
-                    geom_point(aes(x=redox.percent.formatted, y=f0_N2O, color=treatment, shape=plant), size = 2) +
+                    geom_point(aes(x=redox.percent.formatted, y=f0_N2O, color=treatment, shape=history_plant), size = 2) +
   scale_color_manual(values=c("#997700","#6699CC","#004488"), labels = c("Dry", "Interim", "Wet"), name="Treatment")+
-  scale_shape_manual(values=c(1,19), labels = c("No Plant", "Plant"), name="")+
-  geom_smooth(aes(x=redox.percent.formatted, y=f0_N2O), formula = y ~ x, method=lm, se=T, color="black")+
+  scale_shape_manual(labels = c("Dry_No Plant", "Dry_Plant", "Interim_No Plant", "Interim_Plant", "Wet_No Plant", "Wet_Plant"), values = c(0, 15, 2, 17, 1, 19), name="History_Plant")+
+  #geom_smooth(aes(x=redox.percent.formatted, y=f0_N2O), formula = y ~ x, method=lm, se=T, color="black")+
   stat_poly_eq(aes(x=redox.percent.formatted, y=f0_N2O, label = paste(after_stat(adj.rr.label), after_stat(p.value.label), sep = "*\", \"*")), data = IRIS_GHG_start_fin, formula = y ~ x, method = "lm", label.y = "bottom",label.x = "right")+
   theme_bw()  +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -2223,10 +2235,10 @@ n2o.redox.regress.plot
 ```
 
 ```{r Panel together GHG ~ redox regressions}
-GHG_redox_3panel <- ggarrange(ch4.redox.regress.plot, co2.redox.regress.plot, n2o.redox.regress.plot, labels = c("(a)", "(b)", "(c)"), ncol = 1, nrow = 3, legend = "top", common.legend = T, align = "hv")
+GHG_redox_3panel <- ggarrange(ch4.redox.regress.plot, co2.redox.regress.plot, n2o.redox.regress.plot, labels = c("(a)", "(b)", "(c)"), ncol = 1, nrow = 3, legend = "right", common.legend = T, align = "hv")
 
 GHG_redox_3panel
 
-#ggsave("../figures/pub/redox_regres.png", plot=GHG_redox_3panel, device="png", path=NULL, scale=1, width=10, height=12, dpi=600, limitsize=TRUE, bg="white")
+#ggsave("../figures/Ecosphere_pub/redox_regres.tiff", plot=GHG_redox_3panel, device="tiff", path=NULL, scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
 ```
 
