@@ -2282,17 +2282,15 @@ MetaG_pcoa_4panel_SSF <- ggarrange(plot2a, plot2b, plot2c, plot2d, labels = c("(
 
 MetaG_pcoa_4panel_SSF
 
-ggsave("../figures/pub/Figure6.tiff", plot = MetaG_pcoa_4panel_SSF, device="tiff", path=NULL, scale=1, height = 7, width = 10, limitsize = T, bg = "white", dpi = 600)
+#ggsave("../figures/Ecosphere_pub/Figure5.tiff", plot = MetaG_pcoa_4panel_SSF, device="tiff", path=NULL, scale=1, height = 7, width = 10, limitsize = T, bg = "white", dpi = 600)
 
-#ggsave("../figures/pub/metaG_pcoa4panel.jpg", plot = MetaG_pcoa_4panel_SSF, device=NULL, path=NULL, scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 600)
+#ggsave("../figures/Ecosphere_pub/metaG_pcoa4panel.jpg", plot = MetaG_pcoa_4panel_SSF, device=NULL, path=NULL, scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 600)
 
 # 4 panel metaG PCoA with History, Finish samples only (SFO)
 
 MetaG_pcoa_4panel_SFO <- ggarrange(plot3a, plot3b, plot3c, plot3d, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T)
 
 MetaG_pcoa_4panel_SFO
-
-#ggsave("../figures/Thesis/metaG_pcoa4panel_SFO.jpg", plot = MetaG_pcoa_4panel_SFO, device=NULL, path=NULL, scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 600)
 ```
 
 
@@ -2939,8 +2937,6 @@ plot5c <- ggplot(df5c, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_
     ggtitle("Dissimilatory Sulfate Reduction Week 8")
 
 plot5c
-
-#ggsave("../figures/Thesis/Dissim_sulf_red_wk8.png", plot = plot5c, path=NULL, device="png", scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 300)
 ```
 
 ```{r PCoA: Thiosulfate oxidation by SOX complex}
@@ -3161,7 +3157,6 @@ S_pcoa_4panel_SSF
 #ggsave("../figures/Fe_S_manuscript/Figure3.tiff", plot = S_pcoa_4panel_SSF, device="tiff", path=NULL, scale=1, height = 7, width = 13, limitsize = TRUE, dpi = 600, bg = "white")
 
 # 4 panel Sulfur PCoA, Finish samples only (SFO)
-
 S_pcoa_4panel_SFO <- ggarrange(plot5a, plot5b, plot5c, plot5d, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T)
 
 S_pcoa_4panel_SFO
@@ -3923,8 +3918,6 @@ plot8a <- ggplot(df8a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_
     ggtitle("Methane Oxidation")
 
 plot8a
-
-#ggsave("../figures/Thesis/Assim_sulf_red.png", plot = plot8a, path=NULL, device="png", scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 300)
 ```
 
 ```{r DBPLSR barplots 2}
@@ -4008,24 +4001,24 @@ methane.dbplsr.envfit
 # Using Pat Schloss code club as reference: https://www.youtube.com/watch?v=EXNOgmUyPfY
 
 # mantel tests:
-mantel(FeReductionBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
 
-mantel(FeReductionBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
 
-mantel(FeReductionBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
 
-mantel(denitBC, ThioSOXBC, permutations = 10000, set.seed(42))
+vegan::mantel(denitBC, ThioSOXBC, permutations = 10000, set.seed(42))
 
-mantel(DNRABC, ThioSOXBC, permutations = 10000, set.seed(42))
+vegan::mantel(DNRABC, ThioSOXBC, permutations = 10000, set.seed(42))
 
-mantel(ANRABC, ThioSOXBC, permutations = 10000, set.seed(42))
+vegan::mantel(ANRABC, ThioSOXBC, permutations = 10000, set.seed(42))
 
 # Sulfate reduction ~ Methanogen
-mantel(methBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
+vegan::mantel(methBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
 
-mantel(methBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
+vegan::mantel(methBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
 
-mantel(methBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
+vegan::mantel(methBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
 ```
 
 ```{r Mantel heatmap figure (overall comparisons)}
@@ -4053,7 +4046,7 @@ set.seed(42)
 # Run Mantel tests
 for (i in 1:n) {
   for (j in 1:n) {
-    test <- mantel(matrices[[i]], matrices[[j]], permutations = 9999)
+    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
     r_matrix[i, j] <- test$statistic
     p_matrix[i, j] <- test$signif
   }
@@ -4123,6 +4116,8 @@ Mantel_heat_overall <- ggplot(combined, aes(Var1, Var2)) +
 Mantel_heat_overall
 
 #ggsave("../figures/Fe_S_manuscript/Mantel_heat_overall.tiff", plot=Mantel_heat_overall, device="tiff", path=NULL, scale=1, width=10, height=6, dpi=600, limitsize=TRUE ,bg="white")
+
+#ggsave("../figures/Fe_S_manuscript/Mantel_heat_overall.png", plot=Mantel_heat_overall, device="png", path=NULL, scale=1, width=10, height=6, dpi=600, limitsize=TRUE ,bg="white")
 ```
 
 #### Hydrology-specific Mantel tests
@@ -4243,74 +4238,74 @@ methRA_DryTreat_BC <- methRA_DryTreat_design[,-c(1:3)] %>%
 
 ```{r Hydrology-specific Mantel tests Fe red and combined sulfate red}
 # Fe reduction (FeGenie) and Sulfate reduction (combined) in Wet history:
-mantel(FeReductionRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (combined) in Dry history:
-mantel(FeReductionRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (combined) in Wet treatment:
-mantel(FeReductionRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (combined) in Dry treatment:
-mantel(FeReductionRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
 ```
 
 ```{r Hydrology-specific Mantel tests Fe red and Assim sulfate red}
 # Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Wet history:
-mantel(FeReductionRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Dry history:
-mantel(FeReductionRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Wet treatment:
-mantel(FeReductionRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Dry treatment:
-mantel(FeReductionRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
 ```
 
 ```{r Hydrology-specific Mantel tests Fe red and Dissim sulfate red}
 # Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Wet history:
-mantel(FeReductionRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Dry history:
-mantel(FeReductionRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Wet treatment:
-mantel(FeReductionRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
 # Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Dry treatment:
-mantel(FeReductionRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(FeReductionRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
 ```
 
 ```{r Hydrology-specific Mantel tests sulfate red and Methanogen}
 # Methanogenesis and sulfate reduction in Wet history:
-mantel(methRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
 
 # Methanogenesis and sulfate reduction in Dry history:
-mantel(methRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
 
 # Methanogenesis and sulfate reduction in Wet treatment:
-mantel(methRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
 
 # Methanogenesis and sulfate reduction in Dry treatment:
-mantel(methRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
 
-mantel(methRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
+vegan::mantel(methRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
 ```
 
 ```{r Mantel matrix: Wet History}
@@ -4335,7 +4330,7 @@ set.seed(42)
 # Run Mantel tests
 for (i in 1:n) {
   for (j in 1:n) {
-    test <- mantel(matrices[[i]], matrices[[j]], permutations = 9999)
+    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
     r_matrix[i, j] <- test$statistic
     p_matrix[i, j] <- test$signif
   }
@@ -4405,7 +4400,7 @@ set.seed(42)
 # Run Mantel tests
 for (i in 1:n) {
   for (j in 1:n) {
-    test <- mantel(matrices[[i]], matrices[[j]], permutations = 9999)
+    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
     r_matrix[i, j] <- test$statistic
     p_matrix[i, j] <- test$signif
   }
@@ -4475,7 +4470,7 @@ set.seed(42)
 # Run Mantel tests
 for (i in 1:n) {
   for (j in 1:n) {
-    test <- mantel(matrices[[i]], matrices[[j]], permutations = 9999)
+    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
     r_matrix[i, j] <- test$statistic
     p_matrix[i, j] <- test$signif
   }
@@ -4545,7 +4540,7 @@ set.seed(42)
 # Run Mantel tests
 for (i in 1:n) {
   for (j in 1:n) {
-    test <- mantel(matrices[[i]], matrices[[j]], permutations = 9999)
+    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
     r_matrix[i, j] <- test$statistic
     p_matrix[i, j] <- test$signif
   }
@@ -4704,6 +4699,8 @@ MantelHeatHydro_ALL <- ggarrange(MantelHeatHydro_1, MantelHeatHydro_2, MantelHea
 MantelHeatHydro_ALL
 
 #ggsave("../figures/Fe_S_manuscript/MantelHeatHydro.tiff", plot=MantelHeatHydro_ALL, device="tiff", path=NULL, scale=1, width=13, height=9, dpi=600, limitsize=TRUE ,bg="white")
+
+#ggsave("../figures/Fe_S_manuscript/MantelHeatHydro.png", plot=MantelHeatHydro_ALL, device="png", path=NULL, scale=1, width=13, height=9, dpi=600, limitsize=TRUE ,bg="white")
 ```
 
 

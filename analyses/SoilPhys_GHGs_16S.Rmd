@@ -444,12 +444,6 @@ iris_tubes.Finish
 iris_tubes.Combined <- ggarrange(iris_tubes.Start, iris_tubes.Finish, labels = c("Start (Week 0)", "Finish (Week 8)"), ncol = 1, nrow = 2, legend = "right", common.legend = T)
 
 iris_tubes.Combined
-
-#ggsave("../figures/pub/iris_tubes.tiff", plot=iris_tubes.Combined, device="tiff", path=NULL, scale=1, width=6, height=5, dpi=900, limitsize=TRUE, bg="white")
-
-#ggsave("../figures/pub/iris_tubes.png", plot=iris_tubes.Combined, device=NULL, path=NULL, scale=1, width=6, height=5, dpi=600, limitsize=TRUE ,bg="white")
-
-#ggsave("../figures/pub/iris_tubes.pdf", plot=iris_tubes.Combined, device=NULL, path=NULL, scale=1, width=6, height=5, dpi=900, limitsize=TRUE ,bg="transparent")
 ```
 
 ```{r IRIS boxplot with stats for FeS manuscript}
@@ -554,6 +548,8 @@ plot.IRIS_nested <- ggplot(soil_nofield, aes(x=treatment, y=IRIS_percent)) +
 plot.IRIS_nested
 
 #ggsave("../figures/Ecosphere_pub/iris_tubes.tiff", plot=plot.IRIS_nested, device="tiff", path=NULL, scale=1, width=9, height=5, dpi=600, limitsize=TRUE, bg="white")
+
+#ggsave("../figures/Ecosphere_pub/iris_tubes.png", plot=plot.IRIS_nested, device="png", path=NULL, scale=1, width=9, height=5, dpi=600, limitsize=TRUE, bg="white")
 ```
 
 ```{r soil moisture boxplot}
@@ -1333,6 +1329,8 @@ CombPlot_flux_NPvP <- ggarrange(plot.CH4.flux.NPvP, plot.CO2.flux.NPvP, plot.N2O
 CombPlot_flux_NPvP
 
 #ggsave("../figures/Ecosphere_pub/GHG_NPvP/CH4_N2O_suppFig.tiff", plot=CombPlot_flux_NPvP, device="tiff", scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
+
+#ggsave("../figures/Ecosphere_pub/GHG_NPvP/CH4_N2O_suppFig.png", plot=CombPlot_flux_NPvP, device="png", scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
 ```
 
 ## Flux w T0: Treatment and Kruskal boxplots
@@ -1502,6 +1500,8 @@ CombPlot_flux_treat <- ggarrange(plot.CH4.flux.Trt, plot.CO2.flux.Trt, plot.N2O.
 CombPlot_flux_treat
 
 #ggsave("../figures/Ecosphere_pub/GHG_Treatment/Figure3.tiff", plot=CombPlot_flux_treat, device="tiff", path=NULL, scale=1, width=14, height=10, dpi=600, limitsize=TRUE, bg="white")
+
+#ggsave("../figures/Ecosphere_pub/GHG_Treatment/Figure3.png", plot=CombPlot_flux_treat, device="png", path=NULL, scale=1, width=14, height=10, dpi=600, limitsize=TRUE, bg="white")
 ```
 
 ```{r Wilcox and Kruskal-Wallis tables}
@@ -1664,6 +1664,8 @@ CombPlot_flux_hist <- ggarrange(plot.CH4.flux.Hst, plot.CO2.flux.Hst, plot.N2O.f
 CombPlot_flux_hist
 
 #ggsave("../figures/Fe_S_manuscript/GHG_flux/Flux_history.tiff", plot=CombPlot_flux_hist, device="tiff", path=NULL, scale=1, width=14, height=10, dpi=600, limitsize=TRUE, bg="white")
+
+#ggsave("../figures/Fe_S_manuscript/GHG_flux/Flux_history.png", plot=CombPlot_flux_hist, device="png", path=NULL, scale=1, width=14, height=10, dpi=600, limitsize=TRUE, bg="white")
 ```
 
 ## GHG flux plots for FeS manuscript
@@ -1864,8 +1866,9 @@ GHG_flux_3panel <- ggarrange(ch4.line.plot, co2.line.plot, n2o.line.plot, labels
 GHG_flux_3panel
 
 #ggsave("../figures/Fe_S_manuscript/GHG_flux/LinePlot_Flux.tiff", plot=GHG_flux_3panel, device="tiff", path=NULL, scale=1, width=11, height=10, dpi=600, limitsize=TRUE, bg="white")
-```
 
+#ggsave("../figures/Fe_S_manuscript/GHG_flux/LinePlot_Flux.png", plot=GHG_flux_3panel, device="png", path=NULL, scale=1, width=11, height=10, dpi=600, limitsize=TRUE, bg="white")
+```
 
 ## GHG summary
 
@@ -2240,5 +2243,7 @@ GHG_redox_3panel <- ggarrange(ch4.redox.regress.plot, co2.redox.regress.plot, n2
 GHG_redox_3panel
 
 #ggsave("../figures/Ecosphere_pub/redox_regres.tiff", plot=GHG_redox_3panel, device="tiff", path=NULL, scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
+
+#ggsave("../figures/Ecosphere_pub/redox_regres.png", plot=GHG_redox_3panel, device="png", path=NULL, scale=1, width=14, height=12, dpi=600, limitsize=TRUE, bg="white")
 ```
 
