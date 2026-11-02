@@ -327,6 +327,15 @@ soil.finishONLY <- soil %>%
 SFO.by_time_plant_treatment <- soil.finishONLY %>%
   dplyr::select(-c(g.soil.kcl, no2.no3.mg.l, plant.c.percent, plant.n.percent, plant.dry.mass.g, CEC., HM.)) %>%
   group_by(chamber)
+
+# Soil history analysis prep
+soil_hist <- soil |>
+  mutate(history = recode_values(history, "FW" ~ "W", "FD" ~ "D", default = history)) |>
+  filter(history %in% c("W", "D"))
+
+# Correct erroneous "D" and "W" values for field soil samples, converting them to "F" for field
+soil_hist <- soil_hist |>
+  mutate(treatment = if_else(time == "field", "F", treatment))
 ```
 
 ```{r Sample IDs to rownames}
@@ -1257,6 +1266,14 @@ SoilGHG_StartFinish_Envfit <- cbind(GHG_metaG, Soil_StartFinish_forEnvfit)
 
 
 # Statistics
+
+## Soil history analysis
+
+### Assumptions for hypoth tests
+```{r}
+
+```
+
 
 ## dbplsr
 
