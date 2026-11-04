@@ -23,7 +23,8 @@ se <- function(x, ...){sd(x, na.rm = TRUE)/sqrt(length(na.omit(x)))}
 ci <- function(x, ...){1.96 * sd(x,na.rm = TRUE)}
 
 # Code dependencies:
-require("vegan"); require("reshape"); require("ggplot2"): require("tidyr"); require("dplyr"); require("dbstats"); require("reshape2"); require("ggpubr"); require("glue"); require("tidyverse"); require("gasfluxes")
+require("vegan"); require("reshape"); require("ggplot2"): require("tidyr"); require("dplyr"); require("dbstats"); require("reshape2"); require("ggpubr"); require("glue"); require("tidyverse"); require("gasfluxes"); require("lme4");
+require("lmerTest")
 ```
 
 # Load files
@@ -331,11 +332,24 @@ SFO.by_time_plant_treatment <- soil.finishONLY %>%
 # Soil history analysis prep
 soil_hist <- soil |>
   mutate(history = recode_values(history, "FW" ~ "W", "FD" ~ "D", default = history)) |>
-  filter(history %in% c("W", "D"))
+  filter(history %in% c("W", "D")) |>
+  filter(treatment %in% c("F", "D", "W"))
 
 # Correct erroneous "D" and "W" values for field soil samples, converting them to "F" for field
 soil_hist <- soil_hist |>
   mutate(treatment = if_else(time == "field", "F", treatment))
+
+# Mesocosm blocking factor for soil_hist
+soil_hist <- soil_hist |>
+  mutate(group = factor(if_else(row_number() <= 4, as.character(chamber), substr(chamber, 1, 2))))
+
+# Field samples only
+soil_hist_F <- soil_hist |>
+  filter(treatment == "F")
+
+# Remove field from soil_hist
+soil_hist <- soil_hist |>
+  filter(treatment != "F")
 ```
 
 ```{r Sample IDs to rownames}
@@ -1269,9 +1283,16 @@ SoilGHG_StartFinish_Envfit <- cbind(GHG_metaG, Soil_StartFinish_forEnvfit)
 
 ## Soil history analysis
 
-### Assumptions for hypoth tests
 ```{r}
+# Model evaluating interactions and accounting for block-level non-independence
+model_S <- lmer(S.ppm ~ history * treatment * plant + (1 | group), data = soil_hist)
 
+summary(model_S)
+
+# Fe
+model_Fe <- lmer(Fe.ppm ~ history * treatment * plant + (1 | group), data = soil_hist)
+
+summary(model_Fe)
 ```
 
 
@@ -4767,6 +4788,112 @@ combined_BC_FeRed_AssSO4 %>%
 # DSR ~ Meth
 
 # (hydrology-specifics)
+```
+
+# Plotting
+
+```{r field sample chemistry by history}
+# Plot
+chem_vars <- c("P.ppm", "K.ppm", "Mg.ppm", "Ca.ppm", "pH", "S.ppm", "B.ppm",
+               "Zn.ppm", "Mn.ppm", "Fe.ppm", "Cu.ppm", "HM.", "CEC.")
+
+field_chem_long <- soil_hist_F |>
+  pivot_longer(all_of(chem_vars), names_to = "Variable", values_to = "Value") |>
+  mutate(Variable = factor(Variable, levels = chem_vars))
+
+field_chem_plot <- ggplot(field_chem_long, aes(x = history, y = Value)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.15, height = 0) +
+  facet_wrap(~ Variable, scales = "free_y", ncol = 4) +
+  labs(x = "soil history", y = NULL, title = "") +
+  theme_bw() +
+  theme(
+    # Grid
+    panel.grid.major    = element_blank(),
+    panel.grid.minor    = element_blank(),
+    # Panel & border
+    panel.border        = element_rect(colour = "black", linewidth = 1),
+    # Axis
+    axis.title          = element_text(size = 10, face = "bold"),
+    axis.text           = element_text(size = 10, color = "black"),
+    axis.ticks.length   = unit(0.3, "cm"),
+    # Text & strips
+    text                = element_text(size = 10),
+    strip.text          = element_text(size = 10),
+    # Legend
+    legend.position     = "right",
+    legend.title        = element_text(size = 10),
+    legend.text         = element_text(size = 10),
+    # Background
+    rect                = element_rect(fill = "transparent"),
+    plot.background     = element_rect(color = NA)
+  )
+ 
+field_chem_plot
+
+#ggsave("./figures/PercDiffs_Oct26_OE_run.png", plot=field_chem_plot, device="png", path=NULL, scale=1, width=22, height=22, units = "cm", dpi=600, limitsize=TRUE, bg="white")
+```
+
+## Post incubation soil Fe and S concentrations
+
+```{r}
+library(emmeans)
+
+# Extract EMMs for Iron (Fe)
+emms_Fe <- emmeans(model_Fe, ~ treatment * plant * history)
+df_Fe <- as.data.frame(emms_Fe)
+
+# Extract EMMs for Sulfur (S)
+emms_S <- emmeans(model_S, ~ treatment * plant * history)
+df_S <- as.data.frame(emms_S)
+```
+
+```{r Fe emmean plot}
+# Define a clean dodge width to prevent overlapping error bars
+pd <- position_dodge(0.4)
+
+plot_Fe <- ggplot(df_Fe, aes(x = treatment, y = emmean, color = plant, group = plant)) +
+  # Add error bars for the 95% confidence intervals
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2, position = pd, linewidth = 0.8) +
+  # Add points for the estimated means
+  geom_point(position = pd, size = 3) +
+  # Add lines connecting the means to highlight the interaction slopes
+  geom_line(position = pd, size = 1, alpha = 0.7) +
+  # Facet by historical field conditions
+  facet_wrap(~ history, labeller = labeller(history = c("D" = "History: Dry", "W" = "History: Wet"))) +
+  # Clean aesthetics
+  theme_pubr() +
+  scale_color_manual(values = c("N" = "#D55E00", "P" = "#009E73"), 
+                     labels = c("No Plant", "Plant")) +
+  labs(
+    title = "Extractable Soil Iron Response to Hydrologic Shifts",
+    x = "Lab Incubation Hydrology",
+    y = "Estimated Marginal Mean Fe (ppm)",
+    color = "Sub-plot Treatment"
+  ) +
+  theme(legend.position = "right", strip.text = element_text(face = "bold"))
+
+plot_Fe
+```
+
+```{r S emmean plot}
+plot_S <- ggplot(df_S, aes(x = treatment, y = emmean, color = plant, group = plant)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2, position = pd, linewidth = 0.8) +
+  geom_point(position = pd, size = 3) +
+  geom_line(position = pd, size = 1, alpha = 0.7) +
+  facet_wrap(~ history, labeller = labeller(history = c("D" = "History: Dry", "W" = "History: Wet"))) +
+  theme_pubr() +
+  scale_color_manual(values = c("N" = "#D55E00", "P" = "#009E73"), 
+                     labels = c("No Plant", "Plant")) +
+  labs(
+    title = "Extractable Soil Sulfur Response to Hydrologic Shifts",
+    x = "Lab Incubation Hydrology",
+    y = "Estimated Marginal Mean S (ppm)",
+    color = "Sub-plot Treatment"
+  ) +
+  theme(legend.position = "right", strip.text = element_text(face = "bold"))
+
+plot_S
 ```
 
 
