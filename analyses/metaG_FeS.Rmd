@@ -24,7 +24,7 @@ ci <- function(x, ...){1.96 * sd(x,na.rm = TRUE)}
 
 # Code dependencies:
 require("vegan"); require("reshape"); require("ggplot2"): require("tidyr"); require("dplyr"); require("dbstats"); require("reshape2"); require("ggpubr"); require("glue"); require("tidyverse"); require("gasfluxes"); require("lme4");
-require("lmerTest")
+require("lmerTest"); require("funrar")
 ```
 
 # Load files
@@ -50,11 +50,6 @@ ThioSOX <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/IMG_func
 #Reorder rows:
 ThioSOX <- ThioSOX[match(sample_order, ThioSOX$Sample), ]
 
-#Dissimilatory nitrate reduction (M00530):
-DNRA <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/IMG_functions_in_depth/M00530_DNRA.csv")
-#Reorder rows:
-DNRA <- DNRA[match(sample_order, DNRA$Sample), ]
-
 #Methane oxidation (M00174):
 CH4_ox <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/IMG_functions_in_depth/M00174_MethaneOxidation.csv")
 #Reorder rows:
@@ -70,12 +65,12 @@ mtrBC_TIGR <- mtrBC_TIGR[match(sample_order, mtrBC_TIGR$Sample), ]
 #Gene summary:
 FeSummary <- read.csv("../data/metaG/FeGenie_meta_full/FeGenie-geneSummaryRReady.csv", header = T)
 
-FeHeatmap <- read.csv("..data/metaG/FeGenie_meta_full/FeGenie-heatmap-data.csv", header = T)
+FeHeatmap <- read.csv("../data/metaG/FeGenie_meta_full/FeGenie-heatmap-data.csv", header = T)
 ```
 
 ```{r Wrangle FeGenie Heatmap}
 # read in metagenomic metadata from IMG, that will be used to match genome IDs to Sample IDs:
-metaGmetaD <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/metaGmetaData.csv", header = T)
+metaGmetaD <- read.csv("../data/metaG/metaGmetaData.csv", header = T)
 
 # transpose heatmap:
 FeHeatTranspose <- as.data.frame(t(FeHeatmap))
@@ -302,44 +297,14 @@ soil_hist <- soil_hist |>
 
 ```{r Sample IDs to rownames}
 #For metagenomic data, make sample IDs rownames in a new data frame, to be further subsetted to numeric only data:
-denitNumerical <- denit
-rownames(denitNumerical) <- denitNumerical$Sample
-
 methNumerical <- meth
 rownames(methNumerical) <- methNumerical$Sample
-
-carb_metabNumerical <- carb_metab
-rownames(carb_metabNumerical) <- carb_metabNumerical$Sample
-
-cytoCoxNumerical <- cytoCox
-rownames(cytoCoxNumerical) <- cytoCoxNumerical$Sample
-
-SO4_S_AssimNumerical <- SO4_S_Assim
-rownames(SO4_S_AssimNumerical) <- SO4_S_AssimNumerical$Sample
-
-Assim_SO4_redNumerical <- Assim_SO4_red
-rownames(Assim_SO4_redNumerical) <- Assim_SO4_redNumerical$Sample
 
 Dissim_SO4_redNumerical <- Dissim_SO4_red
 rownames(Dissim_SO4_redNumerical) <- Dissim_SO4_redNumerical$Sample
 
 ThioSOXNumerical <- ThioSOX
 rownames(ThioSOXNumerical) <- ThioSOXNumerical$Sample
-
-DNRANumerical <- DNRA
-rownames(DNRANumerical) <- DNRANumerical$Sample
-
-ANRANumerical <- ANRA
-rownames(ANRANumerical) <- ANRANumerical$Sample
-
-NitrificNumerical <- Nitrific
-rownames(NitrificNumerical) <- NitrificNumerical$Sample
-
-COMAMMOXNumerical <- COMAMMOX
-rownames(COMAMMOXNumerical) <- COMAMMOXNumerical$Sample
-
-NfixNumerical <- Nfix
-rownames(NfixNumerical) <- NfixNumerical$Sample
 
 CH4_oxNumerical <- CH4_ox
 rownames(CH4_oxNumerical) <- CH4_oxNumerical$Sample
@@ -349,170 +314,47 @@ rownames(mtrBC_TIGRNumerical) <- mtrBC_TIGRNumerical$Sample
 
 FeGenieNumerical <- FeMerged
 rownames(FeGenieNumerical) <- FeGenieNumerical$Sample 
-
-SO4_red_combinedNumerical <- SO4_red_combined
-rownames(SO4_red_combinedNumerical) <- SO4_red_combinedNumerical$Sample
 ```
 
 ```{r make numeric only data frames for functional genes}
-denitNumerical <- denitNumerical[,-(1:2)]
-
 methNumerical <- methNumerical[,-(1:2)]
-
-carb_metabNumerical <- carb_metabNumerical[,-(1:2)]
-
-cytoCoxNumerical <- cytoCoxNumerical[,-(1:2)]
-
-SO4_S_AssimNumerical <- SO4_S_AssimNumerical[,-(1:2)]
-
-Assim_SO4_redNumerical <- Assim_SO4_redNumerical[,-(1:2)]
+dim(methNumerical)
 
 Dissim_SO4_redNumerical <- Dissim_SO4_redNumerical[,-(1:2)]
 
 ThioSOXNumerical <- ThioSOXNumerical[,-(1:2)]
 
-DNRANumerical <- DNRANumerical[,-(1:2)]
-
-ANRANumerical <- ANRANumerical[,-(1:2)]
-
-NitrificNumerical <- NitrificNumerical[,-(1:2)]
-
-COMAMMOXNumerical <- COMAMMOXNumerical[,-(1:2)]
-
-NfixNumerical <- NfixNumerical[,-(1:2)]
-
 CH4_oxNumerical <- CH4_oxNumerical[,-(1:2)]
 
 mtrBC_TIGRNumerical <- mtrBC_TIGRNumerical[,-(1:2)]
 
-FeGenieNumerical <- FeGenieNumerical[, 2:14]
-# Must convert characters to numeric for all the data from FeGenie:
-#(using a brute force method for now, because struggling to find something more efficient)
-FeGenieNumerical$`iron_aquisition-iron_transport` <- as.numeric(FeGenieNumerical$`iron_aquisition-iron_transport`)
-FeGenieNumerical$`iron_aquisition-heme_transport` <- as.numeric(FeGenieNumerical$`iron_aquisition-heme_transport`)
-FeGenieNumerical$`iron_aquisition-heme_oxygenase` <- as.numeric(FeGenieNumerical$`iron_aquisition-heme_oxygenase`)
-FeGenieNumerical$`iron_aquisition-siderophore_synthesis` <- as.numeric(FeGenieNumerical$`iron_aquisition-siderophore_synthesis`)
-FeGenieNumerical$`iron_aquisition-siderophore_transport` <- as.numeric(FeGenieNumerical$`iron_aquisition-siderophore_transport`)
-FeGenieNumerical$`iron_aquisition-siderophore_transport_potential` <- as.numeric(FeGenieNumerical$`iron_aquisition-siderophore_transport_potential`)
-FeGenieNumerical$iron_gene_regulation <- as.numeric(FeGenieNumerical$iron_gene_regulation)
-FeGenieNumerical$iron_oxidation <- as.numeric(FeGenieNumerical$iron_oxidation)
-FeGenieNumerical$possible_iron_oxidation_and_possible_iron_reduction <- as.numeric(FeGenieNumerical$possible_iron_oxidation_and_possible_iron_reduction)
-FeGenieNumerical$probable_iron_reduction <- as.numeric(FeGenieNumerical$probable_iron_reduction)
-FeGenieNumerical$iron_reduction <- as.numeric(FeGenieNumerical$iron_reduction)
-FeGenieNumerical$iron_storage <- as.numeric(FeGenieNumerical$iron_storage)
-FeGenieNumerical$magnetosome_formation <- as.numeric(FeGenieNumerical$magnetosome_formation)
-
-# Combined sulfate reduction numerical
-SO4_red_combinedNumerical <- SO4_red_combinedNumerical[,-(1:2)]
+# Keep columns 2:14 and convert them from character to numeric
+FeGenieNumerical <- FeGenieNumerical[, 2:14] |>
+  dplyr::mutate(dplyr::across(everything(), as.numeric))
 ```
 
-Note for future analyses:
-- use the package "funrar", and function make_relative() to do relative abundance calculations
-  - yields same results as our for loops below
-  - has publication: https://doi.org/10.1111/ddi.12629 
-- install.packages("funrar")
-- require("funrar")
-- relative_abundance <- make_relative(as.matrix(Numerical))
-
 ```{r Convert gene counts to relative abundance}
-#Convert denitrification KO counts to relative abundance:
-denitRA <- denitNumerical
-for(i in 1:dim(denitNumerical)[1]){
-  denitRA[i,] <- denitNumerical[i,]/sum(denitNumerical[i,])
-}
+methRA <- make_relative(as.matrix(methNumerical))
 
-#Convert methanogen KO counts to relative abundance:
-methRA <- methNumerical
-for(i in 1:dim(methNumerical)[1]){
-  methRA[i,] <- methNumerical[i,]/sum(methNumerical[i,])
-}
+Dissim_SO4_redRA <- make_relative(as.matrix(Dissim_SO4_redNumerical))
 
-#Convert central carbohydrate metabolism KO counts to relative abundance:
-carb_metabRA <- carb_metabNumerical
-for(i in 1:dim(carb_metabNumerical)[1]){
-  carb_metabRA[i,] <- carb_metabNumerical[i,]/sum(carb_metabNumerical[i,])
-}
 
-#Convert cytochrome C oxidase KO counts to relative abundance:
-cytoCoxRA <- cytoCoxNumerical
-for(i in 1:dim(cytoCoxNumerical)[1]){
-  cytoCoxRA[i,] <- cytoCoxNumerical[i,]/sum(cytoCoxNumerical[i,])
-}
+ThioSOXRA <- make_relative(as.matrix(ThioSOXNumerical))
 
-SO4_S_AssimRA <- SO4_S_AssimNumerical
-for(i in 1:dim(SO4_S_AssimNumerical)[1]){
-  SO4_S_AssimRA[i,] <- SO4_S_AssimNumerical[i,]/sum(SO4_S_AssimNumerical[i,])
-}
 
-Assim_SO4_redRA <- Assim_SO4_redNumerical
-for(i in 1:dim(Assim_SO4_redNumerical)[1]){
-  Assim_SO4_redRA[i,] <- Assim_SO4_redNumerical[i,]/sum(Assim_SO4_redNumerical[i,])
-}
+CH4_oxRA <- make_relative(as.matrix(CH4_oxNumerical))
 
-Dissim_SO4_redRA <- Dissim_SO4_redNumerical
-for(i in 1:dim(Dissim_SO4_redNumerical)[1]){
-  Dissim_SO4_redRA[i,] <- Dissim_SO4_redNumerical[i,]/sum(Dissim_SO4_redNumerical[i,])
-}
 
-ThioSOXRA <- ThioSOXNumerical
-for(i in 1:dim(ThioSOXNumerical)[1]){
-  ThioSOXRA[i,] <- ThioSOXNumerical[i,]/sum(ThioSOXNumerical[i,])
-}
+mtrBC_TIGRRA <- make_relative(as.matrix(mtrBC_TIGRNumerical))
 
-DNRARA <- DNRANumerical
-for(i in 1:dim(DNRANumerical)[1]){
-  DNRARA[i,] <- DNRANumerical[i,]/sum(DNRANumerical[i,])
-}
 
-ANRARA <- ANRANumerical
-for(i in 1:dim(ANRANumerical)[1]){
-  ANRARA[i,] <- ANRANumerical[i,]/sum(ANRANumerical[i,])
-}
+FeGenieRA <- make_relative(as.matrix(FeGenieNumerical))
 
-NitrificRA <- NitrificNumerical
-for(i in 1:dim(NitrificNumerical)[1]){
-  NitrificRA[i,] <- NitrificNumerical[i,]/sum(NitrificNumerical[i,])
-}
 
-COMAMMOXRA <- COMAMMOXNumerical
-for(i in 1:dim(COMAMMOXNumerical)[1]){
-  COMAMMOXRA[i,] <- COMAMMOXNumerical[i,]/sum(COMAMMOXNumerical[i,])
-}
+FeReductionRA <- make_relative(as.matrix(FeReduction))
 
-NfixRA <- NfixNumerical
-for(i in 1:dim(NfixNumerical)[1]){
-  NfixRA[i,] <- NfixNumerical[i,]/sum(NfixNumerical[i,])
-}
 
-CH4_oxRA <- CH4_oxNumerical
-for(i in 1:dim(CH4_oxNumerical)[1]){
-  CH4_oxRA[i,] <- CH4_oxNumerical[i,]/sum(CH4_oxNumerical[i,])
-}
-
-mtrBC_TIGRRA <- mtrBC_TIGRNumerical
-for(i in 1:dim(mtrBC_TIGRNumerical)[1]){
-  mtrBC_TIGRRA[i,] <- mtrBC_TIGRNumerical[i,]/sum(mtrBC_TIGRNumerical[i,])
-}
-
-FeGenieRA <- FeGenieNumerical
-for(i in 1:dim(FeGenieNumerical)[1]){
-  FeGenieRA[i,] <- FeGenieNumerical[i,]/sum(FeGenieNumerical[i,])
-}
-
-SO4_red_combinedRA <- SO4_red_combinedNumerical
-for(i in 1:dim(SO4_red_combinedNumerical)[1]){
-  SO4_red_combinedRA[i,] <- SO4_red_combinedNumerical[i,]/sum(SO4_red_combinedNumerical[i,])
-}
-
-FeReductionRA <- FeReduction
-for(i in 1:dim(FeReduction)[1]){
-  FeReductionRA[i,] <- FeReduction[i,]/sum(FeReduction[i,])
-}
-
-FeOxidationRA <- FeOxidation
-for(i in 1:dim(FeOxidation)[1]){
-  FeOxidationRA[i,] <- FeOxidation[i,]/sum(FeOxidation[i,])
-}
+FeOxidationRA <- make_relative(as.matrix(FeOxidation))
 ```
 
 ```{r lists of start and finish samples}
@@ -522,44 +364,14 @@ finish_metaG_samples <- c("03NFC", "03PFC", "06NFC", "06PFC", "08NFC", "08PFC", 
 ```
 
 ```{r Subset start and finish samples from all gene sets}
-denitRA_start <- denitRA[start_metaG_samples, ]
-denitRA_finish <- denitRA[finish_metaG_samples, ]
-
 methRA_start <- methRA[start_metaG_samples, ]
 methRA_finish <- methRA[finish_metaG_samples, ]
-
-carb_metabRA_start <- carb_metabRA[start_metaG_samples, ]
-carb_metabRA_finish <- carb_metabRA[finish_metaG_samples, ]
-
-cytoCoxRA_start <- cytoCoxRA[start_metaG_samples, ]
-cytoCoxRA_finish <- cytoCoxRA[finish_metaG_samples, ]
-
-SO4_S_AssimRA_start <- SO4_S_AssimRA[start_metaG_samples, ]
-SO4_S_AssimRA_finish <- SO4_S_AssimRA[finish_metaG_samples, ]
-
-Assim_SO4_redRA_start <- Assim_SO4_redRA[start_metaG_samples, ]
-Assim_SO4_redRA_finish <- Assim_SO4_redRA[finish_metaG_samples, ]
 
 Dissim_SO4_redRA_start <- Dissim_SO4_redRA[start_metaG_samples, ]
 Dissim_SO4_redRA_finish <- Dissim_SO4_redRA[finish_metaG_samples, ]
 
 ThioSOXRA_start <- ThioSOXRA[start_metaG_samples, ]
 ThioSOXRA_finish <- ThioSOXRA[finish_metaG_samples, ]
-
-DNRARA_start <- DNRARA[start_metaG_samples, ]
-DNRARA_finish <- DNRARA[finish_metaG_samples, ]
-
-ANRARA_start <- ANRARA[start_metaG_samples, ]
-ANRARA_finish <- ANRARA[finish_metaG_samples, ]
-
-NitrificRA_start <- NitrificRA[start_metaG_samples, ]
-NitrificRA_finish <- NitrificRA[finish_metaG_samples, ]
-
-COMAMMOXRA_start <- COMAMMOXRA[start_metaG_samples, ]
-COMAMMOXRA_finish <- COMAMMOXRA[finish_metaG_samples, ]
-
-NfixRA_start <- NfixRA[start_metaG_samples, ]
-NfixRA_finish <- NfixRA[finish_metaG_samples, ]
 
 CH4_oxRA_start <- CH4_oxRA[start_metaG_samples, ]
 CH4_oxRA_finish <- CH4_oxRA[finish_metaG_samples, ]
@@ -570,9 +382,6 @@ mtrBC_TIGRRA_finish <- mtrBC_TIGRRA[finish_metaG_samples, ]
 FeGenieRA_start <- FeGenieRA[start_metaG_samples,]
 FeGenieRA_finish <- FeGenieRA[finish_metaG_samples,]
 
-SO4_red_combinedRA_start <- SO4_red_combinedRA[start_metaG_samples,]
-SO4_red_combinedRA_finish <- SO4_red_combinedRA[finish_metaG_samples,]
-
 FeReductionRA_start <- FeReductionRA[start_metaG_samples,]
 FeReductionRA_finish <- FeReductionRA[finish_metaG_samples,]
 
@@ -582,120 +391,140 @@ FeOxidationRA_finish <- FeOxidationRA[finish_metaG_samples,]
 
 ```{r Dimension check for RA matrices}
 #Check dimensions of each relative abundance (RA) matrix:
-dim(denitRA) #24 10
 dim(methRA) #24 44
-dim(carb_metabRA) #24 120
-dim(cytoCoxRA) #24 5
-dim(SO4_S_AssimRA) #24 14
-dim(Assim_SO4_redRA) #24 10
 dim(Dissim_SO4_redRA) #24 5
 dim(ThioSOXRA) #24 7
-dim(DNRARA) #24 9
-dim(ANRARA) #24 6
-dim(NitrificRA) #24 4
-dim(COMAMMOXRA) #24 6
-dim(NfixRA) #24 8
 dim(CH4_oxRA) #24 12
 dim(mtrBC_TIGRRA) #24 2
 dim(FeGenieRA) #24 13
+dim(FeReductionRA) #24 39
+dim(FeOxidationRA) #24 8
 
 #Check dimensions of RA start matrices
-dim(denitRA_start) #8 10
 dim(methRA_start) #8 44
-dim(carb_metabRA_start) #8 120
-dim(cytoCoxRA_start) #8 5
-dim(SO4_S_AssimRA_start) #8 14
-dim(Assim_SO4_redRA_start) #8 10
 dim(Dissim_SO4_redRA_start) #8 5
 dim(ThioSOXRA_start) #8 7
-dim(DNRARA_start) #8 9
-dim(ANRARA_start) #8 6
-dim(NitrificRA_start) #8 4
-dim(COMAMMOXRA_start) #8 6
-dim(NfixRA_start) #8 8
 dim(CH4_oxRA_start) #8 12
 dim(mtrBC_TIGRRA_start) #8 2
 dim(FeGenieRA_start) #8 13
+dim(FeReductionRA_start) #8 39
+dim(FeOxidationRA_start) #8 8
 
 #Check dimensions of RA finish matrices
-dim(denitRA_finish) #16 10
 dim(methRA_finish) #16 44
-dim(carb_metabRA_finish) #16 120
-dim(cytoCoxRA_finish) #16 5
-dim(SO4_S_AssimRA_finish) #16 14
-dim(Assim_SO4_redRA_finish) #16 10
 dim(Dissim_SO4_redRA_finish) #16 5
 dim(ThioSOXRA_finish) #16 7
-dim(DNRARA_finish) #16 9
-dim(ANRARA_finish) #16 6
-dim(NitrificRA_finish) #16 4
-dim(COMAMMOXRA_finish) #16 6
-dim(NfixRA_finish) #16 8
 dim(CH4_oxRA_finish) #16 12
 dim(mtrBC_TIGRRA_finish) #16 2
 dim(FeGenieRA_finish) #16 13
+dim(FeReductionRA_finish) #16 39
+dim(FeOxidationRA_finish) #16 8
 ```
 
 ```{r modify 'design' rownames}
 #Make metaG sample ID's the rownames on 'design'. Then drop design$Sample:
 rownames(design) <- design$Sample
 design <- design[,2:4]
+
+# Add mesocosm ID to design
+design$mesocosm_ID <- as.factor(substr(rownames(design), 1, 2))
+
+# Mesocosm blocking factor for soil_hist
+soil_hist <- soil_hist |>
+  mutate(group = factor(if_else(row_number() <= 4, as.character(chamber), substr(chamber, 1, 2))))
 ```
 
 ```{r combine RA and design data frames}
 # Make data frames from gene set relative abundance (RA) data frames and design
-denitRA_design <- cbind(design, denitRA)
 methRA_design <- cbind(design, methRA)
-carb_metabRA_design <- cbind(design, carb_metabRA)
-cytoCoxRA_design <- cbind(design, cytoCoxRA)
-SO4_S_AssimRA_design <- cbind(design, SO4_S_AssimRA)
-Assim_SO4_redRA_design <- cbind(design, Assim_SO4_redRA)
 Dissim_SO4_redRA_design <- cbind(design, Dissim_SO4_redRA)
 ThioSOXRA_design <- cbind(design, ThioSOXRA)
-DNRARA_design <- cbind(design, DNRARA)
-ANRARA_design <- cbind(design, ANRARA)
-NitrificRA_design <- cbind(design, NitrificRA)
-COMAMMOXRA_design <- cbind(design, COMAMMOXRA)
-NfixRA_design <- cbind(design, NfixRA)
 CH4_oxRA_design <- cbind(design, CH4_oxRA)
 mtrBC_TIGRRA_design <- cbind(design, mtrBC_TIGRRA)
 FeGenieRA_design <- cbind(design, FeGenieRA)
-
-SO4_red_combinedRA_design <- cbind(design, SO4_red_combinedRA)
-
 FeReductionRA_design <- cbind(design, FeReductionRA)
-
 FeOxidationRA_design <- cbind(design, FeOxidationRA)
+```
 
+```{r pool plant halves to N=8 mesocosms}
+# Collapse +Plant/-Plant halves to one row per mesocosm (finish samples only).
+# Relative abundances are averaged; use sum() instead if pooling raw counts.
+pool_mesocosm <- function(RA_design) {
+  RA_design |>
+    tibble::rownames_to_column("sample") |>
+    filter(Plant != "_pre") |>
+    group_by(mesocosm_ID, Hist, Treat) |>
+    summarise(across(where(is.numeric), mean), .groups = "drop") |>
+    arrange(mesocosm_ID) |>
+    tibble::column_to_rownames("mesocosm_ID")
+}
+
+methRA_pooled <- pool_mesocosm(methRA_design)
+
+# Community matrix (N=8) and whole-plot design
+methRA_pooled_comm <- methRA_pooled |> dplyr::select(-c(Hist, Treat))
+methRA_pooled_design <- methRA_pooled |> dplyr::select(Hist, Treat)
+
+stopifnot(nrow(methRA_pooled_comm) == 8)
+methBC_pooled <- vegan::vegdist(methRA_pooled_comm, method = "bray")
+
+# Pool every gene set that has a *RA_design object defined above.
+# Each element holds: comm (N=8 matrix), design, BC (Bray-Curtis), pcoa.
+RA_design_list <- list(
+  meth           = methRA_design,
+  Dissim_SO4_red = Dissim_SO4_redRA_design,
+  ThioSOX        = ThioSOXRA_design,
+  CH4_ox         = CH4_oxRA_design,
+  mtrBC_TIGR     = mtrBC_TIGRRA_design,
+  FeGenie        = FeGenieRA_design,
+  FeReduction    = FeReductionRA_design,
+  FeOxidation    = FeOxidationRA_design
+)
+
+pooled <- lapply(RA_design_list, function(x) {
+  p <- pool_mesocosm(x)
+  comm <- p |> dplyr::select(-c(Hist, Treat))
+  BC <- vegan::vegdist(comm, method = "bray")
+  list(
+    comm = comm,
+    design = p |> dplyr::select(Hist, Treat),
+    BC = BC,
+    pcoa = cmdscale(BC, k = 2, eig = TRUE, add = TRUE)
+  )
+})
+```
+
+```{r average environmental data to N=8 mesocosms}
+# Average soil + GHG variables across +Plant/-Plant halves.
+# envfit_FINISH rownames are metaG IDs (e.g. "03NFC"); first two characters = mesocosm_ID.
+envfit_pooled <- envfit_FINISH |>
+  tibble::rownames_to_column("sample") |>
+  mutate(mesocosm_ID = substr(sample, 1, 2)) |>
+  group_by(mesocosm_ID, history, treatment) |>
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
+  arrange(mesocosm_ID)
+
+# Numeric-only envfit matrix, rows aligned with methRA_pooled
+envfit_pooled_numerical <- envfit_pooled |>
+  tibble::column_to_rownames("mesocosm_ID") |>
+  dplyr::select(where(is.numeric))
+
+stopifnot(identical(rownames(envfit_pooled_numerical), rownames(methRA_pooled_comm)))
+
+# Same averaging for soil_hist (Fe, S, etc.), keyed on mesocosm
+soil_hist_pooled <- soil_hist |>
+  mutate(mesocosm_ID = substr(chamber, 1, 2)) |>
+  group_by(mesocosm_ID, history, treatment) |>
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
+  arrange(mesocosm_ID)
 ```
 
 ## Bray Curtis dissimilarity
 
-Calculate Bray Curtis dissimilarity:
 ```{r relative abundance to Bray Curtis dissimilarity}
-denitBC <- vegdist(denitRA, method = 'bray')
-denitBC_start <- vegdist(denitRA_start, method = 'bray')
-denitBC_finish <- vegdist(denitRA_finish, method = 'bray')
-
 methBC <- vegdist(methRA, method = 'bray')
 methBC_start <- vegdist(methRA_start, method = 'bray')
 methBC_finish <- vegdist(methRA_finish, method = 'bray')
-
-carb_metabBC <- vegdist(carb_metabRA, method = 'bray')
-carb_metabBC_start <- vegdist(carb_metabRA_start, method = 'bray')
-carb_metabBC_finish <- vegdist(carb_metabRA_finish, method = 'bray')
-
-cytoCoxBC <- vegdist(cytoCoxRA, method = 'bray')
-cytoCoxBC_start <- vegdist(cytoCoxRA_start, method = 'bray')
-cytoCoxBC_finish <- vegdist(cytoCoxRA_finish, method = 'bray')
-
-SO4_S_AssimBC <- vegdist(SO4_S_AssimRA, method = 'bray')
-SO4_S_AssimBC_start <- vegdist(SO4_S_AssimRA_start, method = 'bray')
-SO4_S_AssimBC_finish <- vegdist(SO4_S_AssimRA_finish, method = 'bray')
-
-Assim_SO4_redBC <- vegdist(Assim_SO4_redRA, method = 'bray')
-Assim_SO4_redBC_start <- vegdist(Assim_SO4_redRA_start, method = 'bray')
-Assim_SO4_redBC_finish <- vegdist(Assim_SO4_redRA_finish, method = 'bray')
 
 Dissim_SO4_redBC <- vegdist(Dissim_SO4_redRA, method = 'bray')
 Dissim_SO4_redBC_start <- vegdist(Dissim_SO4_redRA_start, method = 'bray')
@@ -704,26 +533,6 @@ Dissim_SO4_redBC_finish <- vegdist(Dissim_SO4_redRA_finish, method = 'bray')
 ThioSOXBC <- vegdist(ThioSOXRA, method = 'bray')
 ThioSOXBC_start <- vegdist(ThioSOXRA_start, method = 'bray')
 ThioSOXBC_finish <- vegdist(ThioSOXRA_finish, method = 'bray')
-
-DNRABC <- vegdist(DNRARA, method = 'bray')
-DNRABC_start <- vegdist(DNRARA_start, method = 'bray')
-DNRABC_finish <- vegdist(DNRARA_finish, method = 'bray')
-
-ANRABC <- vegdist(ANRARA, method = 'bray')
-ANRABC_start <- vegdist(ANRARA_start, method = 'bray')
-ANRABC_finish <- vegdist(ANRARA_finish, method = 'bray')
-
-NitrificBC <- vegdist(NitrificRA, method = 'bray')
-NitrificBC_start <- vegdist(NitrificRA_start, method = 'bray')
-NitrificBC_finish <- vegdist(NitrificRA_finish, method = 'bray')
-
-COMAMMOXBC <- vegdist(COMAMMOXRA, method = 'bray')
-COMAMMOXBC_start <- vegdist(COMAMMOXRA_start, method = 'bray')
-COMAMMOXBC_finish <- vegdist(COMAMMOXRA_finish, method = 'bray')
-
-NfixBC <- vegdist(NfixRA, method = 'bray')
-NfixBC_start <- vegdist(NfixRA_start, method = 'bray')
-NfixBC_finish <- vegdist(NfixRA_finish, method = 'bray')
 
 CH4_oxBC <- vegdist(CH4_oxRA, method = 'bray')
 CH4_oxBC_start <- vegdist(CH4_oxRA_start, method = 'bray')
@@ -736,11 +545,6 @@ mtrBC_TIGRBC_finish <- vegdist(mtrBC_TIGRRA_finish, method = 'bray')
 FeGenieBC <- vegdist(FeGenieRA, method = 'bray')
 FeGenieBC_start <- vegdist(FeGenieRA_start, method = 'bray')
 FeGenieBC_finish <- vegdist(FeGenieRA_finish, method = 'bray')
-
-# Resume with SO4_red_combined, FeRed, and FeOx:
-SO4_red_combinedBC <- vegdist(SO4_red_combinedRA, method = 'bray')
-SO4_red_combinedBC_start <- vegdist(SO4_red_combinedRA_start, method = 'bray')
-SO4_red_combinedBC_finish <- vegdist(SO4_red_combinedRA_finish, method = 'bray')
 
 FeReductionBC <- vegdist(FeReductionRA, method = 'bray')
 FeReductionBC_start <- vegdist(FeReductionRA_start, method = 'bray')
@@ -1226,7 +1030,6 @@ Soil_StartFinish_forEnvfit <- Soil_StartFinish_forEnvfit[match(sample_order, row
 SoilGHG_StartFinish_Envfit <- cbind(GHG_metaG, Soil_StartFinish_forEnvfit)
 ```
 
-
 # Statistics
 
 ## Soil history analysis
@@ -1243,184 +1046,85 @@ model_Fe <- lmer(Fe.ppm ~ history * treatment * plant + (1 | group), data = soil
 summary(model_Fe)
 ```
 
-
 ## dbplsr
 
 Distance-based partial least squares regression:
 ```{r dbplsr}
-# CO2 ~ Assimilatory sulfate reduction:
-start.Assim_SO4_red.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CO2 ~ as.matrix(Assim_SO4_redBC_start), ncomp = 7, method = "GCV")
-summary(start.Assim_SO4_red.dbplsr)
-#plot(start.Assim_SO4_red.dbplsr)
+# Leave-one-block-out CV (Q2) for the combined model.
+# predict.dbplsr() did not reproduce in-sample fitted values, so kernel PLS1 is implemented directly
+# (verified to match dbplsr fitted values in-sample).
+kpls1_predict <- function(K, Kn, y, ncomp) {
+  ybar <- mean(y); yd <- y - ybar
+  out <- matrix(NA_real_, nrow(Kn), ncomp); pred <- rep(ybar, nrow(Kn))
+  for (j in 1:ncomp) {
+    t <- K %*% yd; tn <- Kn %*% yd; tt <- sum(t^2)
+    q <- sum(t * yd) / tt
+    pred <- pred + tn * q; out[, j] <- pred
+    yd <- yd - t * q
+    Kt <- K %*% t
+    Kn <- Kn - tn %*% crossprod(t, K) / tt - (Kn %*% t) %*% t(t) / tt +
+      tn %*% t(t) * as.numeric(crossprod(t, Kt)) / tt^2
+    K <- K - t %*% crossprod(t, K) / tt - Kt %*% t(t) / tt +
+      t %*% t(t) * as.numeric(crossprod(t, Kt)) / tt^2
+  }
+  out
+}
 
-finish.Assim_SO4_red.dbplsr <- dbplsr(GHG_finish_metaG$f0_CO2 ~ as.matrix(Assim_SO4_redBC_finish), ncomp = 15, method = "GCV")
-summary(finish.Assim_SO4_red.dbplsr)
-#plot(finish.Assim_SO4_red.dbplsr)
+# Gower-centered kernel rows for held-out samples (new x train squared distances)
+Gnew_from_D2 <- function(D2train, d2new)
+  -0.5 * (sweep(d2new, 2, rowMeans(D2train)) - rowMeans(d2new) + mean(D2train))
 
-# CH4 ~ Dissimilatory sulfate reduction:
-start.Dissim_SO4_red.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CH4~ as.matrix(Dissim_SO4_redBC_start), ncomp = 7, method = "GCV")
-summary(start.Dissim_SO4_red.dbplsr)
-#plot(start.Dissim_SO4_red.dbplsr)
+D2_full <- as.matrix(Dissim_SO4_redBC)^2
+y_all   <- GHG_metaG$f0_CH4
+block   <- substr(rownames(D2_full), 1, 2)
+K_max   <- 8
 
-finish.Dissim_SO4_red.dbplsr <- dbplsr(GHG_finish_metaG$f0_CH4 ~ as.matrix(Dissim_SO4_redBC_finish), ncomp = 15, method = "GCV")
-summary(finish.Dissim_SO4_red.dbplsr)
-#plot(finish.Dissim_SO4_red.dbplsr)
+cv_pred   <- matrix(NA_real_, length(y_all), K_max)
+null_pred <- numeric(length(y_all))
+for (b in unique(block)) {
+  te <- block == b; tr <- !te
+  J    <- diag(sum(tr)) - 1 / sum(tr)
+  D2tr <- D2_full[tr, tr]
+  Gtr  <- -0.5 * J %*% D2tr %*% J
+  Gte  <- Gnew_from_D2(D2tr, D2_full[te, tr, drop = FALSE])
+  cv_pred[te, ] <- kpls1_predict(Gtr, Gte, y_all[tr], K_max)
+  null_pred[te] <- mean(y_all[tr])
+}
 
-# CH4 ~ Fe reduction:
-start.FeReduction.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CH4 ~ as.matrix(FeReductionBC_start), ncomp = 7, method = "GCV")
-summary(start.FeReduction.dbplsr)
-#plot(start.FeReduction.dbplsr)
-
-finish.FeReduction.dbplsr <- dbplsr(GHG_finish_metaG$f0_CH4 ~ as.matrix(FeReductionBC_finish), ncomp = 15, method = "GCV")
-summary(finish.FeReduction.dbplsr)
-#plot(finish.FeReduction.dbplsr)
-
-# CH4 ~ methanogenesis:
-start.meth.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CH4 ~ as.matrix(methBC_start), ncomp = 7, method = "GCV")
-summary(start.meth.dbplsr)
-#plot(start.meth.dbplsr)
-
-finish.meth.dbplsr <- dbplsr(GHG_finish_metaG$f0_CH4 ~ as.matrix(methBC_finish), ncomp = 15, method = "GCV")
-summary(finish.meth.dbplsr)
-#plot(finish.meth.dbplsr)
-
-# CH4 ~ methane oxidation:
-start.CH4_ox.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CH4 ~ as.matrix(CH4_oxBC_start), ncomp = 7, method = "GCV")
-summary(start.CH4_ox.dbplsr)
-#plot(start.CH4_ox.dbplsr)
-
-finish.CH4_ox.dbplsr <- dbplsr(GHG_finish_metaG$f0_CH4 ~ as.matrix(CH4_oxBC_finish), ncomp = 15, method = "GCV")
-summary(finish.CH4_ox.dbplsr)
-#plot(finish.CH4_ox.dbplsr)
-
-# CO2 ~ central carbohydrate metabolism:
-start.carb_metab.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CO2 ~ as.matrix(carb_metabBC_start), ncomp = 7, method = "GCV")
-summary(start.carb_metab.dbplsr)
-#plot(start.carb_metab.dbplsr)
-
-finish.carb_metab.dbplsr <- dbplsr(GHG_finish_metaG$f0_CO2 ~ as.matrix(carb_metabBC_finish), ncomp = 15, method = "GCV")
-summary(finish.carb_metab.dbplsr)
-#plot(finish.carb_metab.dbplsr)
-
-# CO2 ~ Cytochrome C Oxidase:
-start.cytoCox.dbplsr <- dbplsr(GHG_start_metaG_avg$f0_CO2 ~ as.matrix(cytoCoxBC_start), ncomp = 7, method = "GCV")
-summary(start.cytoCox.dbplsr)
-#plot(start.cytoCox.dbplsr)
-
-finish.cytoCox.dbplsr <- dbplsr(GHG_finish_metaG$f0_CO2 ~ as.matrix(cytoCoxBC_finish), ncomp = 15, method = "GCV")
-summary(finish.cytoCox.dbplsr)
-#plot(finish.cytoCox.dbplsr)
-
-# CO2 ~ Denitrification:
-start.denit.dbplsr.co2 <- dbplsr(GHG_start_metaG_avg$f0_CO2 ~ as.matrix(denitBC_start), ncomp = 7, method = "GCV")
-summary(start.denit.dbplsr.co2)
-#plot(start.denit.dbplsr.co2)
-
-finish.denit.dbplsr.co2 <- dbplsr(GHG_finish_metaG$f0_CO2 ~ as.matrix(denitBC_finish), ncomp = 15, method = "GCV")
-summary(finish.denit.dbplsr.co2)
-#plot(finish.denit.dbplsr.co2)
-
-# N2O ~ Denitrification:
-start.denit.dbplsr.n2o <- dbplsr(GHG_start_metaG_avg$f0_N2O ~ as.matrix(denitBC_start), ncomp = 7, method = "GCV")
-summary(start.denit.dbplsr.n2o)
-#plot(start.denit.dbplsr.n2o)
-
-finish.denit.dbplsr.n2o <- dbplsr(GHG_finish_metaG$f0_N2O ~ as.matrix(denitBC_finish), ncomp = 15, method = "GCV")
-summary(finish.denit.dbplsr.n2o)
-#plot(finish.denit.dbplsr.n2o)
+q2_tbl <- data.frame(
+  ncomp = 1:K_max,
+  PRESS = colSums((y_all - cv_pred)^2),
+  Q2    = 1 - colSums((y_all - cv_pred)^2) / sum((y_all - null_pred)^2),
+  RMSEP = sqrt(colMeans((y_all - cv_pred)^2))
+)
+q2_tbl
 ```
-
-```{r DBPLSR barplots}
-# read in formatted table of dbplsr component 2 adjusted R2 results:
-dbplsr_comp2 <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/dbplsr_comp2.csv")
-
-
-methane.dbplsr.plot <- ggplot(data = dbplsr_comp2, aes(x=Timepoint, y=Comp2_adjR2, fill = Dist_matrix)) +
-  geom_bar(stat = "identity", position = position_dodge())+
-  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73"), name = "KEGG Module")+
-  theme_bw() +
-  #Remove plot grid lines
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  #Set axis title and text properties, tick marks, and labels
-  theme(text=element_text(size=14),axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=14),  
-          axis.title.y=element_text(margin=margin(r=10)),
-          panel.border = element_rect(colour = "black",linewidth=1),strip.text = element_text(size = 14), legend.position="right", legend.title = element_text(size=14), legend.text=element_text(size=14)) + 
-          theme(axis.ticks.length=unit(0.3,"cm")) + 
-          labs(x = "Timepoint", y = "% Variance Explained: Methane", title="") +
-  theme(rect=element_rect(fill="transparent"))+
-  theme(plot.background = element_rect(color=NA))
-
-methane.dbplsr.plot
-
-#ggsave("../figures/Fe_S_manuscript/methane_dbplsr_plot.png", plot=methane.dbplsr.plot, device="png", path=NULL, scale=1, width=7, height=4, dpi=600, limitsize=TRUE, bg = "white")
-```
-
 
 ## PERMANOVA
 
-Permutational multivariate analysis of variance (PERMANOVA):
+```{r}
+# PERMANOVA on pooled N=8 mesocosm matrix; free permutations (no pseudoreplication)
+set.seed(4817)
+permanova_model_meth <- adonis2(
+  methBC_pooled ~ Hist * Treat,
+  data = methRA_pooled_design,
+  permutations = 9999,
+  by = "margin"
+)
 
-```{r PERMANOVA with History}
-#PERMANOVA with History:
-adonis_denit_H = adonis2(denitRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = denitRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_denit_H
-
-adonis_meth_H = adonis2(methRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = methRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_meth_H
-
-adonis_carb_metab_H = adonis2(carb_metabRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = carb_metabRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_carb_metab_H
-
-adonis_cytoCox_H = adonis2(cytoCoxRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = cytoCoxRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_cytoCox_H
-
-adonis_SO4_S_Assim_H = adonis2(SO4_S_AssimRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = SO4_S_AssimRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_SO4_S_Assim_H
-
-adonis_Assim_SO4_red_H = adonis2(Assim_SO4_redRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = Assim_SO4_redRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_Assim_SO4_red_H
-
-adonis_Dissim_SO4_red_H = adonis2(Dissim_SO4_redRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = Dissim_SO4_redRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_Dissim_SO4_red_H
-
-adonis_ThioSOX_H = adonis2(ThioSOXRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = ThioSOXRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_ThioSOX_H
-
-adonis_DNRA_H = adonis2(DNRARA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = DNRARA_design, perm=10000, set.seed=42, by = "terms")
-adonis_DNRA_H
-
-adonis_ANRA_H = adonis2(ANRARA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = ANRARA_design, perm=10000, set.seed=42, by = "terms")
-adonis_ANRA_H
-
-adonis_Nitrific_H = adonis2(NitrificRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = NitrificRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_Nitrific_H
-
-adonis_COMAMMOX_H = adonis2(COMAMMOXRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = COMAMMOXRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_COMAMMOX_H
-
-adonis_Nfix_H = adonis2(NfixRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = NfixRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_Nfix_H
-
-adonis_CH4_ox_H = adonis2(CH4_oxRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = CH4_oxRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_CH4_ox_H
-
-adonis_mtrBC_TIGR_H = adonis2(mtrBC_TIGRRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = mtrBC_TIGRRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_mtrBC_TIGR_H
-
-adonis_FeGenie_H = adonis2(FeGenieRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = FeGenieRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_FeGenie_H
-
-adonis_SO4_red_combined_H = adonis2(SO4_red_combinedRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = SO4_red_combinedRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_SO4_red_combined_H
-
-adonis_FeReduction_H = adonis2(FeReductionRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = FeReductionRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_FeReduction_H
-
-adonis_FeOxidation_H = adonis2(FeOxidationRA_design[,-c(1:3)]~Plant*Hist + Plant*Treat, method = "bray", data = FeOxidationRA_design, perm=10000, set.seed=42, by = "terms")
-adonis_FeOxidation_H
+permanova_model_meth
 ```
 
+
+Permutational multivariate analysis of variance (PERMANOVA):
+```{r pooled PERMANOVA, all gene sets}
+# N=8 mesocosm-level PERMANOVA; free permutations, marginal (by = "margin") tests
+set.seed(7351)
+adonis_pooled <- lapply(pooled, function(x) {
+  adonis2(x$BC ~ Hist * Treat, data = x$design, permutations = 9999, by = "margin")
+})
+adonis_pooled
+```
 
 ## PCoA
 
@@ -1797,8 +1501,13 @@ meth_FIN_centroids_points_merged <- rbind(pcoa_meth_FIN.cent.dataframe.trts, pco
 # Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
 pcoa_meth_FINAL_DF <- as.data.frame(pcoa_meth_FINAL$points)
 
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_meth_SFO <- envfit(pcoa_meth_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
+# Pooled N=8 ordination, then envfit with averaged N=8 environmental matrix
+pcoa_meth_pooled <- cmdscale(methBC_pooled, k = 2, eig = TRUE, add = TRUE)
+pcoa_meth_pooled_DF <- as.data.frame(pcoa_meth_pooled$points)
+stopifnot(identical(rownames(pcoa_meth_pooled_DF), rownames(envfit_pooled_numerical)))
+
+set.seed(2093)
+fit_meth_SFO <- envfit(pcoa_meth_pooled_DF, envfit_pooled_numerical, permutations = 9999)
 fit_meth_SFO
 
 A_meth_SFO <-as.list(fit_meth_SFO$vectors)
@@ -2877,7 +2586,7 @@ pcoa_Dissim_SO4_red_FINAL_DF <- as.data.frame(pcoa_Dissim_SO4_red_FINAL$points)
 
 
 # Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_Dissim_SO4_red_SFO <- envfit(pcoa_Dissim_SO4_red_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
+set.seed(2093); fit_Dissim_SO4_red_SFO <- envfit(as.data.frame(pooled$Dissim_SO4_red$pcoa$points), envfit_pooled_numerical, permutations = 9999)
 fit_Dissim_SO4_red_SFO
 
 A_Dissim_SO4_red_SFO <-as.list(fit_Dissim_SO4_red_SFO$vectors)
