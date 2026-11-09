@@ -54,11 +54,6 @@ ThioSOX <- ThioSOX[match(sample_order, ThioSOX$Sample), ]
 CH4_ox <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/IMG_functions_in_depth/M00174_MethaneOxidation.csv")
 #Reorder rows:
 CH4_ox <- CH4_ox[match(sample_order, CH4_ox$Sample), ]
-
-#Fe reduction (mtrBC) (TIGR03507 + TIGR03509):
-mtrBC_TIGR <- read.csv("~/GitHub/WetlandMesocosm_GHG_Timberlake/data/metaG/IMG_functions_in_depth/FeR_mtrBC.csv")
-#Reorder rows:
-mtrBC_TIGR <- mtrBC_TIGR[match(sample_order, mtrBC_TIGR$Sample), ]
 ```
 
 ```{r Import FeGenie output}
@@ -309,9 +304,6 @@ rownames(ThioSOXNumerical) <- ThioSOXNumerical$Sample
 CH4_oxNumerical <- CH4_ox
 rownames(CH4_oxNumerical) <- CH4_oxNumerical$Sample
 
-mtrBC_TIGRNumerical <- mtrBC_TIGR
-rownames(mtrBC_TIGRNumerical) <- mtrBC_TIGRNumerical$Sample
-
 FeGenieNumerical <- FeMerged
 rownames(FeGenieNumerical) <- FeGenieNumerical$Sample 
 ```
@@ -326,8 +318,6 @@ ThioSOXNumerical <- ThioSOXNumerical[,-(1:2)]
 
 CH4_oxNumerical <- CH4_oxNumerical[,-(1:2)]
 
-mtrBC_TIGRNumerical <- mtrBC_TIGRNumerical[,-(1:2)]
-
 # Keep columns 2:14 and convert them from character to numeric
 FeGenieNumerical <- FeGenieNumerical[, 2:14] |>
   dplyr::mutate(dplyr::across(everything(), as.numeric))
@@ -338,21 +328,13 @@ methRA <- make_relative(as.matrix(methNumerical))
 
 Dissim_SO4_redRA <- make_relative(as.matrix(Dissim_SO4_redNumerical))
 
-
 ThioSOXRA <- make_relative(as.matrix(ThioSOXNumerical))
-
 
 CH4_oxRA <- make_relative(as.matrix(CH4_oxNumerical))
 
-
-mtrBC_TIGRRA <- make_relative(as.matrix(mtrBC_TIGRNumerical))
-
-
 FeGenieRA <- make_relative(as.matrix(FeGenieNumerical))
 
-
 FeReductionRA <- make_relative(as.matrix(FeReduction))
-
 
 FeOxidationRA <- make_relative(as.matrix(FeOxidation))
 ```
@@ -376,9 +358,6 @@ ThioSOXRA_finish <- ThioSOXRA[finish_metaG_samples, ]
 CH4_oxRA_start <- CH4_oxRA[start_metaG_samples, ]
 CH4_oxRA_finish <- CH4_oxRA[finish_metaG_samples, ]
 
-mtrBC_TIGRRA_start <- mtrBC_TIGRRA[start_metaG_samples, ]
-mtrBC_TIGRRA_finish <- mtrBC_TIGRRA[finish_metaG_samples, ]
-
 FeGenieRA_start <- FeGenieRA[start_metaG_samples,]
 FeGenieRA_finish <- FeGenieRA[finish_metaG_samples,]
 
@@ -395,7 +374,6 @@ dim(methRA) #24 44
 dim(Dissim_SO4_redRA) #24 5
 dim(ThioSOXRA) #24 7
 dim(CH4_oxRA) #24 12
-dim(mtrBC_TIGRRA) #24 2
 dim(FeGenieRA) #24 13
 dim(FeReductionRA) #24 39
 dim(FeOxidationRA) #24 8
@@ -405,7 +383,6 @@ dim(methRA_start) #8 44
 dim(Dissim_SO4_redRA_start) #8 5
 dim(ThioSOXRA_start) #8 7
 dim(CH4_oxRA_start) #8 12
-dim(mtrBC_TIGRRA_start) #8 2
 dim(FeGenieRA_start) #8 13
 dim(FeReductionRA_start) #8 39
 dim(FeOxidationRA_start) #8 8
@@ -415,7 +392,6 @@ dim(methRA_finish) #16 44
 dim(Dissim_SO4_redRA_finish) #16 5
 dim(ThioSOXRA_finish) #16 7
 dim(CH4_oxRA_finish) #16 12
-dim(mtrBC_TIGRRA_finish) #16 2
 dim(FeGenieRA_finish) #16 13
 dim(FeReductionRA_finish) #16 39
 dim(FeOxidationRA_finish) #16 8
@@ -440,15 +416,14 @@ methRA_design <- cbind(design, methRA)
 Dissim_SO4_redRA_design <- cbind(design, Dissim_SO4_redRA)
 ThioSOXRA_design <- cbind(design, ThioSOXRA)
 CH4_oxRA_design <- cbind(design, CH4_oxRA)
-mtrBC_TIGRRA_design <- cbind(design, mtrBC_TIGRRA)
 FeGenieRA_design <- cbind(design, FeGenieRA)
 FeReductionRA_design <- cbind(design, FeReductionRA)
 FeOxidationRA_design <- cbind(design, FeOxidationRA)
 ```
 
-```{r pool plant halves to N=8 mesocosms}
+```{r pool plant halves to 8 mesocosms}
 # Collapse +Plant/-Plant halves to one row per mesocosm (finish samples only).
-# Relative abundances are averaged; use sum() instead if pooling raw counts.
+# Relative abundances are averaged
 pool_mesocosm <- function(RA_design) {
   RA_design |>
     tibble::rownames_to_column("sample") |>
@@ -475,7 +450,6 @@ RA_design_list <- list(
   Dissim_SO4_red = Dissim_SO4_redRA_design,
   ThioSOX        = ThioSOXRA_design,
   CH4_ox         = CH4_oxRA_design,
-  mtrBC_TIGR     = mtrBC_TIGRRA_design,
   FeGenie        = FeGenieRA_design,
   FeReduction    = FeReductionRA_design,
   FeOxidation    = FeOxidationRA_design
@@ -492,31 +466,6 @@ pooled <- lapply(RA_design_list, function(x) {
     pcoa = cmdscale(BC, k = 2, eig = TRUE, add = TRUE)
   )
 })
-```
-
-```{r average environmental data to N=8 mesocosms}
-# Average soil + GHG variables across +Plant/-Plant halves.
-# envfit_FINISH rownames are metaG IDs (e.g. "03NFC"); first two characters = mesocosm_ID.
-envfit_pooled <- envfit_FINISH |>
-  tibble::rownames_to_column("sample") |>
-  mutate(mesocosm_ID = substr(sample, 1, 2)) |>
-  group_by(mesocosm_ID, history, treatment) |>
-  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
-  arrange(mesocosm_ID)
-
-# Numeric-only envfit matrix, rows aligned with methRA_pooled
-envfit_pooled_numerical <- envfit_pooled |>
-  tibble::column_to_rownames("mesocosm_ID") |>
-  dplyr::select(where(is.numeric))
-
-stopifnot(identical(rownames(envfit_pooled_numerical), rownames(methRA_pooled_comm)))
-
-# Same averaging for soil_hist (Fe, S, etc.), keyed on mesocosm
-soil_hist_pooled <- soil_hist |>
-  mutate(mesocosm_ID = substr(chamber, 1, 2)) |>
-  group_by(mesocosm_ID, history, treatment) |>
-  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
-  arrange(mesocosm_ID)
 ```
 
 ## Bray Curtis dissimilarity
@@ -538,10 +487,6 @@ CH4_oxBC <- vegdist(CH4_oxRA, method = 'bray')
 CH4_oxBC_start <- vegdist(CH4_oxRA_start, method = 'bray')
 CH4_oxBC_finish <- vegdist(CH4_oxRA_finish, method = 'bray')
 
-mtrBC_TIGRBC <- vegdist(mtrBC_TIGRRA, method = 'bray')
-mtrBC_TIGRBC_start <- vegdist(mtrBC_TIGRRA_start, method = 'bray')
-mtrBC_TIGRBC_finish <- vegdist(mtrBC_TIGRRA_finish, method = 'bray')
-
 FeGenieBC <- vegdist(FeGenieRA, method = 'bray')
 FeGenieBC_start <- vegdist(FeGenieRA_start, method = 'bray')
 FeGenieBC_finish <- vegdist(FeGenieRA_finish, method = 'bray')
@@ -555,7 +500,8 @@ FeOxidationBC_start <- vegdist(FeOxidationRA_start, method = 'bray')
 FeOxidationBC_finish <- vegdist(FeOxidationRA_finish, method = 'bray')
 ```
 
-## GHGs (new flux analysis from SoilPhys_GHGs_16S.Rmd)
+## GHGs
+
 ```{r read in meta data}
 #Read in design file
 meta <- read.csv("../data/tmg_design.csv")
@@ -739,8 +685,6 @@ for (i in (nrow(ghg_flux_w_T0) - 1):1) {
   }
 }
 
-
-
 # Convert ppm to mg/m^3, based on https://www.cdc.gov/niosh/docs/2004-101/calc.html (based on 25°C and 1 atm):
 # y mg/m3 = (x ppm)(molar mass)/24.45
   # 24.45 is the volume (liters) of a mole (gram molecular weight) of a gas or vapor when the pressure is at 1 atmosphere (760 torr or 760 mm Hg) and at 25°C
@@ -833,11 +777,8 @@ select_fluxes_combined_w_T0$f0_N2O <- n2o_fluxes_only_w_T0$f0_selected # add on 
 # Character vector with correct sample ID order:
 Order_GHG_flux <-   c("6/13/2016 1N", "6/13/2016 1P", "6/13/2016 2N", "6/13/2016 2P", "6/13/2016 3N", "6/13/2016 3P", "6/13/2016 4N", "6/13/2016 4P", "6/13/2016 5N", "6/13/2016 5P", "6/13/2016 6N", "6/13/2016 6P", "6/13/2016 7N", "6/13/2016 7P", "6/13/2016 8N", "6/13/2016 8P", "6/13/2016 9N", "6/13/2016 9P", "6/13/2016 10N", "6/13/2016 10P", "6/13/2016 11N", "6/13/2016 11P", "6/13/2016 12N", "6/13/2016 12P", "6/13/2016 13N", "6/13/2016 13P", "6/13/2016 14N", "6/13/2016 14P", "6/13/2016 15N", "6/13/2016 15P", "6/13/2016 16N", "6/13/2016 16P", "6/13/2016 17N", "6/13/2016 17P", "6/13/2016 18N", "6/13/2016 18P", "6/28/2016 1N", "6/28/2016 1P", "6/28/2016 2N", "6/28/2016 2P", "6/28/2016 3N", "6/28/2016 3P", "6/28/2016 4N", "6/28/2016 4P", "6/28/2016 5N", "6/28/2016 5P", "6/28/2016 6N", "6/28/2016 6P", "6/28/2016 7N", "6/28/2016 7P", "6/28/2016 8N", "6/28/2016 8P", "6/28/2016 9N", "6/28/2016 9P", "6/28/2016 10N", "6/28/2016 10P", "6/28/2016 11N", "6/28/2016 11P", "6/28/2016 12N", "6/28/2016 12P", "6/28/2016 13N", "6/28/2016 13P", "6/28/2016 14N", "6/28/2016 14P", "6/28/2016 15N", "6/28/2016 15P", "6/28/2016 16N", "6/28/2016 16P", "6/28/2016 17N", "6/28/2016 17P", "6/28/2016 18N", "6/28/2016 18P", "7/11/2016 1N", "7/11/2016 1P", "7/11/2016 2N", "7/11/2016 2P", "7/11/2016 3N", "7/11/2016 3P", "7/11/2016 4N", "7/11/2016 4P", "7/11/2016 5N", "7/11/2016 5P", "7/11/2016 6N", "7/11/2016 6P", "7/11/2016 7N", "7/11/2016 7P", "7/11/2016 8N", "7/11/2016 8P", "7/11/2016 9N", "7/11/2016 9P", "7/11/2016 10N", "7/11/2016 10P", "7/11/2016 11N", "7/11/2016 11P", "7/11/2016 12N", "7/11/2016 12P", "7/11/2016 13N", "7/11/2016 13P", "7/11/2016 14N", "7/11/2016 14P", "7/11/2016 15N", "7/11/2016 15P", "7/11/2016 16N", "7/11/2016 16P", "7/11/2016 17N", "7/11/2016 17P", "7/11/2016 18N", "7/11/2016 18P", "7/25/2016 1N", "7/25/2016 1P", "7/25/2016 2N", "7/25/2016 2P", "7/25/2016 3N", "7/25/2016 3P", "7/25/2016 4N", "7/25/2016 4P", "7/25/2016 5N", "7/25/2016 5P", "7/25/2016 6N", "7/25/2016 6P", "7/25/2016 7N", "7/25/2016 7P", "7/25/2016 8N", "7/25/2016 8P", "7/25/2016 9N", "7/25/2016 9P", "7/25/2016 10N", "7/25/2016 10P", "7/25/2016 11N", "7/25/2016 11P", "7/25/2016 12N", "7/25/2016 12P", "7/25/2016 13N", "7/25/2016 13P", "7/25/2016 14N", "7/25/2016 14P", "7/25/2016 15N", "7/25/2016 15P", "7/25/2016 16N", "7/25/2016 16P", "7/25/2016 17N", "7/25/2016 17P", "7/25/2016 18N", "7/25/2016 18P", "8/11/2016 1N", "8/11/2016 1P", "8/11/2016 2N", "8/11/2016 2P", "8/11/2016 3N", "8/11/2016 3P", "8/11/2016 4N", "8/11/2016 4P", "8/11/2016 5N", "8/11/2016 5P", "8/11/2016 6N", "8/11/2016 6P", "8/11/2016 7N", "8/11/2016 7P", "8/11/2016 8N", "8/11/2016 8P", "8/11/2016 9N", "8/11/2016 9P", "8/11/2016 10N", "8/11/2016 10P", "8/11/2016 11N", "8/11/2016 11P", "8/11/2016 12N", "8/11/2016 12P", "8/11/2016 13N", "8/11/2016 13P", "8/11/2016 14N", "8/11/2016 14P", "8/11/2016 15N", "8/11/2016 15P", "8/11/2016 16N", "8/11/2016 16P", "8/11/2016 17N", "8/11/2016 17P", "8/11/2016 18N", "8/11/2016 18P")
 
-
 # Change order of select_fluxes_combined_w_T0 to match the other dataframes
 select_fluxes_combined_w_T0 <- select_fluxes_combined_w_T0[match(Order_GHG_flux, select_fluxes_combined_w_T0$ID), ]
-
-# CHECK ROW ORDERS NOW
 
 # DF that contains meta info and same row number as select_fluxes_combined_w_T0
 ghg_ppm_filtered <- ghg_ppm %>%
@@ -858,176 +799,75 @@ select_fluxes_combined_w_T0$history <- ghg_ppm_filtered$history
 
 ## GHG wrangling
 
-Wrangling greenhouse gas (GHG) data:
+Mesocosm-level GHG time series (mean of +plant and -plant fluxes), final-timepoint fluxes, and cumulative fluxes for envfit against the N = 8 pooled metagenomic ordinations:
 ```{r wrangling GHG data}
-# For compatibility and to make a new DF for changes:
-GHG_less_columns <- select_fluxes_combined_w_T0
+# Mesocosms with pooled metagenomes
+metaG_mesocosms <- c("03", "06", "08", "09", "10", "11", "12", "16")
 
-# Convert GHG_less_columns$plant to lowercase to match with design2$plant:
-GHG_less_columns$plant <- tolower(GHG_less_columns$plant)
+# Trapezoidal area under the flux-vs-time curve (same result as MESS::auc(type = "linear"))
+trapz <- function(x, y) sum(diff(x) * (head(y, -1) + tail(y, -1)) / 2)
 
-# Add on box:
-GHG_less_columns$box <- ghg_ppm_filtered$chamber
+# 1. Mesocosm-level time series: average +plant and -plant chambers
+GHG_pooled <- select_fluxes_combined_w_T0 |>
+  as_tibble() |>
+  mutate(
+    date = as.Date(sub(" .*", "", ID), format = "%m/%d/%Y"),
+    # ID format is "m/d/Y <box><N|P>", e.g. "6/13/2016 3N" -> mesocosm "03"
+    mesocosm_ID = sprintf("%02d", as.integer(sub("^\\S+ (\\d+)[NP]$", "\\1", ID))),
+    Timepoint = match(date, sort(unique(date))),
+    day = as.numeric(date - min(date))
+  ) |>
+  filter(mesocosm_ID %in% metaG_mesocosms) |>
+  group_by(mesocosm_ID, Timepoint, date, day) |>
+  summarise(across(c(f0_CH4, f0_CO2, f0_N2O), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
+  arrange(mesocosm_ID, Timepoint)
 
-#Subset GHG_less_columns for 'start' time point (6/13/2016) and 'finish' time point (8/11/2016):
-GHG_start <- dplyr::filter(GHG_less_columns, date_short == "6/13")
-GHG_finish <- dplyr::filter(GHG_less_columns, date_short == "8/11")
+stopifnot(all(count(GHG_pooled, mesocosm_ID)$n == 5))
 
-#Add design2 into GHG 'start' and 'finish':
-GHG_start <- left_join(GHG_start, design2, by = c("plant", "treatment", "history", "box"))
-GHG_finish <- left_join(GHG_finish, design2, by = c("plant", "treatment", "history", "box"))
+# 2. Final timepoint (T5), row-named by mesocosm_ID
+GHG_T5 <- GHG_pooled |>
+  filter(Timepoint == 5) |>
+  select(mesocosm_ID, f0_CH4, f0_CO2, f0_N2O) |>
+  tibble::column_to_rownames("mesocosm_ID")
 
-#Subset GHG_finish and GHG_start to only have metaG sample numbers:
-GHG_start_metaG <- rbind(GHG_start[5:6,], GHG_start[11:12,], GHG_start[15:24,], GHG_start[31:32,])
-GHG_finish_metaG <- rbind(GHG_finish[5:6,], GHG_finish[11:12,], GHG_finish[15:24,], GHG_finish[31:32,])
+# 3. Cumulative flux over T1-T5 (trapezoid on actual days elapsed), row-named by mesocosm_ID
+GHG_Cumulative <- GHG_pooled |>
+  group_by(mesocosm_ID) |>
+  summarise(across(c(f0_CH4, f0_CO2, f0_N2O), \(y) trapz(day, y)), .groups = "drop") |>
+  tibble::column_to_rownames("mesocosm_ID")
 
-#To align "pre" metaG samples with a single, initial GHG value (from the start GHG measurements on 6/28/2016), average together GHG samples in the same box number, then transpose and set row name to corresponding metaG Sample ID:
-GHG_start_03 <- data.frame(colMeans(GHG_start_metaG[1:2, 2:4]))
-GHG_start_03 <- as.data.frame(t(GHG_start_03))
-row.names(GHG_start_03) <- "03Pre"
-
-GHG_start_06 <- data.frame(colMeans(GHG_start_metaG[3:4, 2:4]))
-GHG_start_06 <- as.data.frame(t(GHG_start_06))
-row.names(GHG_start_06) <- "06Pre"
-
-GHG_start_08 <- data.frame(colMeans(GHG_start_metaG[5:6, 2:4]))
-GHG_start_08 <- as.data.frame(t(GHG_start_08))
-row.names(GHG_start_08) <- "08Pre"
-
-GHG_start_09 <- data.frame(colMeans(GHG_start_metaG[7:8, 2:4]))
-GHG_start_09 <- as.data.frame(t(GHG_start_09))
-row.names(GHG_start_09) <- "09Pre"
-
-GHG_start_10 <- data.frame(colMeans(GHG_start_metaG[9:10, 2:4]))
-GHG_start_10 <- as.data.frame(t(GHG_start_10))
-row.names(GHG_start_10) <- "10Pre"
-
-GHG_start_11 <- data.frame(colMeans(GHG_start_metaG[11:12, 2:4]))
-GHG_start_11 <- as.data.frame(t(GHG_start_11))
-row.names(GHG_start_11) <- "11Pre"
-
-GHG_start_12 <- data.frame(colMeans(GHG_start_metaG[13:14, 2:4]))
-GHG_start_12 <- as.data.frame(t(GHG_start_12))
-row.names(GHG_start_12) <- "12Pre"
-
-GHG_start_16 <- data.frame(colMeans(GHG_start_metaG[15:16, 2:4]))
-GHG_start_16 <- as.data.frame(t(GHG_start_16))
-row.names(GHG_start_16) <- "16Pre"
-
-#Then rbind() all the dfs together
-GHG_start_metaG_avg <- rbind(GHG_start_03, GHG_start_06, GHG_start_08, GHG_start_09, GHG_start_10, GHG_start_11, GHG_start_12, GHG_start_16)
-
-#Set the row names of GHG data to the metaG sample names, so that stats functions can compare the GHG and metaG data sets:
-GHG_finish_metaG <- as.data.frame(GHG_finish_metaG) # must be a DF for row.names to work
-
-row.names(GHG_finish_metaG) <- c("03NFC", "03PFC", "06NFC", "06PFC", "08NFC", "08PFC", "09NFC","09PFC", "10NFC","10PFC", "11NFC", "11PFC", "12NFC", "12PFC", "16NFC", "16PFC")
-
-#Combine GHG_start_metaG_avg and GHG_finish_metaG[,2:4] to have all 24 samples:
-GHG_metaG <- rbind(GHG_start_metaG_avg, GHG_finish_metaG[,2:4])
-GHG_metaG <- GHG_metaG[match(sample_order, rownames(GHG_metaG)), ]
-
-#Clean up GHG_finish_metaG for envfitting:
-GHG_finish_envfit <- GHG_finish_metaG %>%
-  dplyr::select(-c(date_short, time, source, ttreat, hhistory, ID))
+# Rows must match the pooled ordination order
+stopifnot(identical(rownames(GHG_T5), rownames(pooled$meth$pcoa$points)),
+          identical(rownames(GHG_Cumulative), rownames(GHG_T5)))
 ```
 
-```{r Combined GHG and Soil FINISH data frames for envfit}
-#Subset of SFO.by_time_plant_treatment that is represented in GHG_finish_envfit:
-SFO.envfit <- SFO.by_time_plant_treatment %>%
-  dplyr::filter(chamber %in% GHG_finish_envfit$sample)
+```{r pooled environmental data for envfit}
+# Soil chemistry (finish samples) averaged across +Plant/-Plant chambers within each mesocosm.
+# SFO chamber IDs are e.g. "03NC"; first two characters = mesocosm_ID.
+soil_pooled <- SFO.by_time_plant_treatment |>
+  ungroup() |>
+  mutate(mesocosm_ID = substr(chamber, 1, 2)) |>
+  filter(mesocosm_ID %in% rownames(GHG_T5)) |>
+  group_by(mesocosm_ID) |>
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
+  arrange(mesocosm_ID) |>
+  tibble::column_to_rownames("mesocosm_ID")
 
-# Change 'box' to 'chamber' to enable merging:
-colnames(GHG_finish_envfit)[7] <- "chamber"
+# Soil + final-timepoint GHG fluxes, and soil + cumulative GHG fluxes (N = 8, rows = mesocosm_ID)
+env_T5  <- cbind(soil_pooled, setNames(GHG_T5, paste0(names(GHG_T5), "_T5")))
+env_cum <- cbind(soil_pooled, setNames(GHG_Cumulative, paste0(names(GHG_Cumulative), "_cum")))
+env_list <- list(T5 = env_T5, Cumulative = env_cum)
 
-# Match lowercase to enable merging
-SFO.envfit$plant <- tolower(SFO.envfit$plant)
-SFO.envfit$history <- tolower(SFO.envfit$history)
-SFO.envfit$treatment <- tolower(SFO.envfit$treatment)
-GHG_finish_envfit$treatment <- tolower(GHG_finish_envfit$treatment)
-GHG_finish_envfit$history <- tolower(GHG_finish_envfit$history)
+stopifnot(identical(rownames(env_T5), rownames(methRA_pooled_comm)),
+          identical(rownames(env_cum), rownames(methRA_pooled_comm)),
+          !anyNA(env_T5), !anyNA(env_cum))
 
-# To prep merge, make dataframe and set rownames to match
-SFO.envfit <- as.data.frame(SFO.envfit)
-rownames(SFO.envfit) <- rownames(GHG_finish_envfit)
-
-# Remove GHG_finish_envfit chamber and rename $Sample to chamber
-GHG_finish_envfit <- GHG_finish_envfit[,-7]
-colnames(GHG_finish_envfit)[7] <- "chamber"
-
-# Merge soil and greenhouse gas data:
-envfit_FINISH <- merge(GHG_finish_envfit, SFO.envfit, by= c("plant", "treatment", "history", "chamber"))
-
-# Order by chamber, to match with metaG/GHG sample order:
-envfit_FINISH <- envfit_FINISH[order(envfit_FINISH$chamber),]
-
-# Set rownames to metaG/GHG rownames; this will be required for envfit
-rownames(envfit_FINISH) <- rownames(GHG_finish_envfit)
-
-# Now subset to only numbers:
-envfit_FINISH_numerical <- envfit_FINISH %>%
-  dplyr::select(where(is.numeric))
-```
-
-```{r Combine GHG and Soil START&FINISH for envfit}
-#Filter SSF to only get GHG samples ("boxes")
-# Using a brute-force approach:
-SSF.2.0 <- SSF.by_time_plant_treatment[-c(1:4, 7:10, 13:14, 25:30, 33:40, 43:46, 49:50, 61:66, 69:72),]
-
-# Need to average together 'start' samples again to make 'pre'. Use GHG code:
-SSF_start_03 <- data.frame(colMeans(SSF.2.0[17:18, 6:8]))
-SSF_start_03 <- as.data.frame(t(SSF_start_03))
-row.names(SSF_start_03) <- "03Pre"
-
-SSF_start_06 <- data.frame(colMeans(SSF.2.0[19:20, 6:8]))
-SSF_start_06 <- as.data.frame(t(SSF_start_06))
-row.names(SSF_start_06) <- "06Pre"
-
-SSF_start_08 <- data.frame(colMeans(SSF.2.0[21:22, 6:8]))
-SSF_start_08 <- as.data.frame(t(SSF_start_08))
-row.names(SSF_start_08) <- "08Pre"
-
-SSF_start_09 <- data.frame(colMeans(SSF.2.0[23:24, 6:8]))
-SSF_start_09 <- as.data.frame(t(SSF_start_09))
-row.names(SSF_start_09) <- "09Pre"
-
-SSF_start_10 <- data.frame(colMeans(SSF.2.0[25:26, 6:8]))
-SSF_start_10 <- as.data.frame(t(SSF_start_10))
-row.names(SSF_start_10) <- "10Pre"
-
-SSF_start_11 <- data.frame(colMeans(SSF.2.0[27:28, 6:8]))
-SSF_start_11 <- as.data.frame(t(SSF_start_11))
-row.names(SSF_start_11) <- "11Pre"
-
-SSF_start_12 <- data.frame(colMeans(SSF.2.0[29:30, 6:8]))
-SSF_start_12 <- as.data.frame(t(SSF_start_12))
-row.names(SSF_start_12) <- "12Pre"
-
-SSF_start_16 <- data.frame(colMeans(SSF.2.0[31:32, 6:8]))
-SSF_start_16 <- as.data.frame(t(SSF_start_16))
-row.names(SSF_start_16) <- "16Pre"
-
-#Then rbind() all the dfs together
-SSF_start_metaG_avg <- rbind(SSF_start_03, SSF_start_06, SSF_start_08, SSF_start_09, SSF_start_10, SSF_start_11, SSF_start_12, SSF_start_16)
-
-# Subset Finish samples from SSF.2.0:
-SSF.2.0.FINISH <- as.data.frame(SSF.2.0[1:16, ])
-
-# Add column to SSF.2.0.FINISH with the metaG sample IDs:
-SSF.2.0.FINISH$sample <- c("03NFC", "03PFC", "06NFC", "06PFC", "08NFC", "08PFC", "09NFC","09PFC", "10NFC","10PFC", "11NFC", "11PFC", "12NFC", "12PFC", "16NFC", "16PFC")
-
-# Make $sample rownames:
-rownames(SSF.2.0.FINISH) <- SSF.2.0.FINISH$sample
-
-# Subset SSF.2.0.FINISH to the same dimensions as SSF_start_metaG_avg:
-SSF.FINISH.forMerging <- as.data.frame(SSF.2.0.FINISH[,6:8])
-rownames(SSF.FINISH.forMerging) <- SSF.2.0.FINISH$sample
-
-#Combine GHG_start_metaG_avg and GHG_finish_metaG[,5:13] to have all 24 samples:
-Soil_StartFinish_forEnvfit <- rbind(SSF_start_metaG_avg, SSF.FINISH.forMerging)
-Soil_StartFinish_forEnvfit <- Soil_StartFinish_forEnvfit[match(sample_order, rownames(Soil_StartFinish_forEnvfit)), ]
-
-# combine GHG_metaG and SSF
-SoilGHG_StartFinish_Envfit <- cbind(GHG_metaG, Soil_StartFinish_forEnvfit)
+# Same averaging for soil_hist (Fe, S, etc.), keyed on mesocosm
+soil_hist_pooled <- soil_hist |>
+  mutate(mesocosm_ID = substr(chamber, 1, 2)) |>
+  group_by(mesocosm_ID, history, treatment) |>
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
+  arrange(mesocosm_ID)
 ```
 
 # Statistics
@@ -1103,10 +943,10 @@ q2_tbl
 ## PERMANOVA
 
 ```{r}
-# PERMANOVA on pooled N=8 mesocosm matrix; free permutations (no pseudoreplication)
+# PERMANOVA on pooled N=8 mesocosm matrix; free permutations
 set.seed(4817)
 permanova_model_meth <- adonis2(
-  methBC_pooled ~ Hist * Treat,
+  methBC_pooled ~ Hist + Treat,
   data = methRA_pooled_design,
   permutations = 9999,
   by = "margin"
@@ -1114,7 +954,6 @@ permanova_model_meth <- adonis2(
 
 permanova_model_meth
 ```
-
 
 Permutational multivariate analysis of variance (PERMANOVA):
 ```{r pooled PERMANOVA, all gene sets}
@@ -1128,215 +967,6 @@ adonis_pooled
 
 ## PCoA
 
-```{r PCoA: denitrification, start&finish}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_denit <- cmdscale(denitBC, k=2, eig=TRUE, add=TRUE) # changing k to 2 because we only want 2 dimensions anyway
-  # Now trying add = TRUE because of https://www.youtube.com/watch?v=G5Qckqq5Erw
-
-explainvar1b_denit <- round(pcoa_denit$eig[1] / sum(pcoa_denit$eig), 3) * 100
-explainvar2b_denit <- round(pcoa_denit$eig[2] / sum(pcoa_denit$eig), 3) * 100
-sum.eigb <- sum(explainvar1b_denit, explainvar2b_denit)
-
-explainvar1b_denit # 27.1
-explainvar2b_denit # 16.3
-
-pcoa_denit2.groups <- paste(denitRA_design$Treat, denitRA_design$Plant, denitRA_design$Hist, sep = "_")
-pcoa_denit2.points <- data.frame(pcoa_denit$points, group = pcoa_denit2.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_denit2.L.centroids <- reshape2::melt(pcoa_denit2.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_denit2.centroids <- acast(pcoa_denit2.L.centroids, variable ~ group, mean)
-pcoa_denit2.centroids.se <- acast(pcoa_denit2.L.centroids, variable ~ group, se)
-pcoa_denit2.centroids.sd <- acast(pcoa_denit2.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_denit2.cent.dataframe <- cbind(t(pcoa_denit2.centroids), t(pcoa_denit2.centroids.se))
-colnames(pcoa_denit2.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. H: hydrologic history
-trt_H <- c("Baseline", "Baseline", "Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-plant_H <- c("Baseline", "Baseline", "No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-history <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-history_plant_combined <- c(paste(history, plant_H, sep = "_"))
-
-pcoa_denit2.cent.dataframe.trts <- as.data.frame(pcoa_denit2.cent.dataframe) 
-pcoa_denit2.cent.dataframe.trts$trt <- as.factor(trt_H)
-pcoa_denit2.cent.dataframe.trts$plant <- as.factor(plant_H)
-pcoa_denit2.cent.dataframe.trts$history <- as.factor(history)
-pcoa_denit2.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined)
-pcoa_denit2.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_denit2.points_ForPlot <- pcoa_denit2.points
-colnames(pcoa_denit2.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_denit2.points_ForPlot$trt <- denitRA_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_denit2.points_ForPlot$plant <- denitRA_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_denit2.points_ForPlot$history <- denitRA_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_denit2.points_ForPlot$history_plant <- c(paste(pcoa_denit2.points_ForPlot$history, pcoa_denit2.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_denit2.points_ForPlot <- pcoa_denit2.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_denit2.points_ForPlot$V1e <- numeric(24)
-pcoa_denit2.points_ForPlot$V2e <- numeric(24)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_denit2.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-denit_centroids_points_merged <- rbind(pcoa_denit2.cent.dataframe.trts, pcoa_denit2.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_denit_DF <- as.data.frame(pcoa_denit$points)
-```
-
-```{r denit SSF envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_denit_SSF <- envfit(pcoa_denit_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_denit_SSF
-
-A_denit_SSF <-as.list(fit_denit_SSF$vectors)
-vec_denit_SSF <- as.data.frame(fit_denit_SSF$vectors$arrows*sqrt(fit_denit_SSF$vectors$r)*0.15)
-p_denit_SSF <- as.data.frame(A_denit_SSF$pvals)
-vec_denit_SSF <- cbind(vec_denit_SSF, p_denit_SSF)
-vec_denit_SSF <- subset(vec_denit_SSF, A_denit_SSF$pvals<=0.1) # alpha = 0.1 for EcoSphere paper
-
-#Plot using ggplot2
-df2a <- as.data.frame(denit_centroids_points_merged)
-
-plot2a <- ggplot(df2a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_denit}%)")) + ylab(glue("PCoA 2 ({explainvar2b_denit}%)")) + 
-  geom_segment(data=vec_denit_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4, inherit.aes=F)+ 
- geom_text(data=vec_denit_SSF, aes(x=V1-0.005, y=V2-0.007), label = "'CO'[2]", parse = TRUE, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=10), axis.text=element_text(size=10, color = "black"), 
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=10)) +
-  theme(legend.text=element_text(size=10), legend.title = element_text(size=10))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Denitrification")
-
-plot2a
-```
-
-```{r Denit FINAL}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_denit_FINAL <- cmdscale(denitBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_denit_FIN <- round(pcoa_denit_FINAL$eig[1] / sum(pcoa_denit_FINAL$eig), 3) * 100
-explainvar2_denit_FIN <- round(pcoa_denit_FINAL$eig[2] / sum(pcoa_denit_FINAL$eig), 3) * 100
-sum.eig_denit_FIN <- sum(explainvar1_denit_FIN, explainvar2_denit_FIN)
-
-explainvar1_denit_FIN # 34.8
-explainvar2_denit_FIN # 15.9
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-denitRA_FIN_design <- denitRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_denit_FIN.groups <- paste(denitRA_FIN_design$Treat, denitRA_FIN_design$Plant, denitRA_FIN_design$Hist, sep = "_")
-pcoa_denit_FIN.points <- data.frame(pcoa_denit_FINAL$points, group = pcoa_denit_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_denit_FIN.L.centroids <- reshape2::melt(pcoa_denit_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_denit_FIN.centroids <- acast(pcoa_denit_FIN.L.centroids, variable ~ group, mean)
-pcoa_denit_FIN.centroids.se <- acast(pcoa_denit_FIN.L.centroids, variable ~ group, se)
-pcoa_denit_FIN.centroids.sd <- acast(pcoa_denit_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_denit_FIN.cent.dataframe <- cbind(t(pcoa_denit_FIN.centroids), t(pcoa_denit_FIN.centroids.se))
-colnames(pcoa_denit_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors.
-trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_denit_FIN.cent.dataframe.trts <- as.data.frame(pcoa_denit_FIN.cent.dataframe) 
-pcoa_denit_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_denit_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_denit_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_denit_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_denit_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_denit_FIN.points_ForPlot <- pcoa_denit_FIN.points
-colnames(pcoa_denit_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_denit_FIN.points_ForPlot$trt <- denitRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_denit_FIN.points_ForPlot$plant <- denitRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_denit_FIN.points_ForPlot$history <- denitRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_denit_FIN.points_ForPlot$history_plant <- c(paste(pcoa_denit_FIN.points_ForPlot$history, pcoa_denit_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_denit_FIN.points_ForPlot <- pcoa_denit_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_denit_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_denit_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_denit_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-denit_FIN_centroids_points_merged <- rbind(pcoa_denit_FIN.cent.dataframe.trts, pcoa_denit_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_denit_FINAL_DF <- as.data.frame(pcoa_denit_FINAL$points)
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_denit_SFO <- envfit(pcoa_denit_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_denit_SFO
-
-A_denit_SFO <-as.list(fit_denit_SFO$vectors)
-vec_denit_SFO <- as.data.frame(fit_denit_SFO$vectors$arrows*sqrt(fit_denit_SFO$vectors$r)*0.15)
-p_denit_SFO <- as.data.frame(A_denit_SFO$pvals)
-vec_denit_SFO <- cbind(vec_denit_SFO, p_denit_SFO)
-vec_denit_SFO <- subset(vec_denit_SFO, A_denit_SFO$pvals<=0.05)
-
-
-
-#Plot using ggplot2
-df3a <- as.data.frame(denit_FIN_centroids_points_merged)
-
-plot3a <- ggplot(df3a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_denit_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_denit_FIN}%)")) + 
-  geom_segment(data=vec_denit_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")), colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_denit_SFO, aes(x=V1, y=V2+0.01), label= expression(paste("CO"[2])), size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Denitrification")
-
-plot3a
-```
-
-PCoA Methanogenesis, all factors, HISTORY AS SHAPE:
 ```{r PCoA: Methanogenesis; all factors}
 pcoa_meth <- cmdscale(methBC, k=2, eig=TRUE, add=TRUE)
 
@@ -1396,1026 +1026,78 @@ meth_centroids_points_merged <- rbind(pcoa_meth2.cent.dataframe.trts, pcoa_meth2
 pcoa_meth_DF <- as.data.frame(pcoa_meth$points)
 ```
 
-```{r meth SSF envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_meth_SSF <- envfit(pcoa_meth_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_meth_SSF
+Pooled (N = 8) envfit of every gene-set ordination against soil chemistry plus GHG flux, using (i) final-timepoint (T5) fluxes and (ii) cumulative fluxes. With N = 8 and 21 variables per run, treat p-values as exploratory; `p_adj` is Benjamini-Hochberg within each gene set and environmental set.
+```{r pooled envfit}
+set.seed(5821)
 
-A_meth_SSF <-as.list(fit_meth_SSF$vectors)
-vec_meth_SSF <- as.data.frame(fit_meth_SSF$vectors$arrows*sqrt(fit_meth_SSF$vectors$r)*0.15)
-p_meth_SSF <- as.data.frame(A_meth_SSF$pvals)
-vec_meth_SSF <- cbind(vec_meth_SSF, p_meth_SSF)
-vec_meth_SSF <- subset(vec_meth_SSF, A_meth_SSF$pvals<=0.1) # alpha = 0.1 for EcoSphere paper
+fits <- lapply(pooled, \(p) {
+  lapply(env_list, \(e) {
+    stopifnot(identical(rownames(e), rownames(p$pcoa$points)))
+    envfit(p$pcoa$points, e, permutations = 9999)
+  })
+})
 
+envfit_table <- lapply(names(fits), \(g) {
+  lapply(names(fits[[g]]), \(s) {
+    v <- fits[[g]][[s]]$vectors
+    data.frame(gene_set = g, env_set = s, variable = names(v$r), r2 = v$r, p = v$pvals)
+  }) |> bind_rows()
+}) |>
+  bind_rows() |>
+  group_by(gene_set, env_set) |>
+  mutate(p_adj = p.adjust(p, method = "BH")) |>
+  ungroup()
 
-#Plot using ggplot2
-df2b <- as.data.frame(meth_centroids_points_merged)
-
-plot2b <- ggplot(df2b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_meth}%)")) + ylab(glue("PCoA 2 ({explainvar2b_meth}%)")) + 
-  geom_segment(data=vec_meth_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),color="black", alpha=0.4, inherit.aes=F)+ 
- geom_text(data=vec_meth_SSF, aes(x=V1, y=V2-0.007), label= "%moisture", size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=10), axis.text=element_text(size=10, color = "black"), 
-          panel.border = element_rect(color = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=10)) +
-  theme(legend.text=element_text(size=10), legend.title = element_text(size=10))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Methanogenesis")
-
-plot2b
+# Vectors with unadjusted p <= 0.05
+envfit_table |>
+  filter(p <= 0.05) |>
+  arrange(gene_set, env_set, p)
 ```
 
-```{r meth FINAL PCoA}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_meth_FINAL <- cmdscale(methBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
+```{r pooled PCoA biplot function}
+plot_pooled_pcoa <- function(gene_set, env_set, alpha = 0.05, title = gene_set) {
+  p <- pooled[[gene_set]]
+  fit <- fits[[gene_set]][[env_set]]
+  eig <- p$pcoa$eig
+  pct <- round(100 * eig[1:2] / sum(eig), 1)
 
+  pts <- data.frame(p$pcoa$points, p$design) |>
+    mutate(History = recode(Hist, d = "Dry", w = "Wet"),
+           Treatment = recode(Treat, d = "Dry", w = "Wet"))
 
-explainvar1_meth_FIN <- round(pcoa_meth_FINAL$eig[1] / sum(pcoa_meth_FINAL$eig), 3) * 100
-explainvar2_meth_FIN <- round(pcoa_meth_FINAL$eig[2] / sum(pcoa_meth_FINAL$eig), 3) * 100
-sum.eig_meth_FIN <- sum(explainvar1_meth_FIN, explainvar2_meth_FIN)
+  # Unit arrows scaled by sqrt(r2), as in vegan's plot.envfit
+  vec <- as.data.frame(fit$vectors$arrows * sqrt(fit$vectors$r))
+  names(vec) <- c("X1", "X2")
+  vec$variable <- rownames(vec)
+  vec$p <- fit$vectors$pvals
+  vec <- vec[vec$p <= alpha, , drop = FALSE]
 
-explainvar1_meth_FIN # 33.2
-explainvar2_meth_FIN # 24.8
+  # Rescale arrows so the longest sits within the point cloud (lengths are relative only)
+  if (nrow(vec) > 0) {
+    mul <- 0.8 * max(abs(pts[, c("X1", "X2")])) / max(abs(vec[, c("X1", "X2")]))
+    vec[, c("X1", "X2")] <- vec[, c("X1", "X2")] * mul
+  }
 
-# Filter 'pre' samples out of *RA_design to get final samples only
-methRA_FIN_design <- methRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_meth_FIN.groups <- paste(methRA_FIN_design$Treat, methRA_FIN_design$Plant, methRA_FIN_design$Hist, sep = "_")
-pcoa_meth_FIN.points <- data.frame(pcoa_meth_FINAL$points, group = pcoa_meth_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_meth_FIN.L.centroids <- reshape2::melt(pcoa_meth_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_meth_FIN.centroids <- acast(pcoa_meth_FIN.L.centroids, variable ~ group, mean)
-pcoa_meth_FIN.centroids.se <- acast(pcoa_meth_FIN.L.centroids, variable ~ group, se)
-pcoa_meth_FIN.centroids.sd <- acast(pcoa_meth_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_meth_FIN.cent.dataframe <- cbind(t(pcoa_meth_FIN.centroids), t(pcoa_meth_FIN.centroids.se))
-colnames(pcoa_meth_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors.
-trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_meth_FIN.cent.dataframe.trts <- as.data.frame(pcoa_meth_FIN.cent.dataframe) 
-pcoa_meth_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_meth_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_meth_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_meth_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_meth_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_meth_FIN.points_ForPlot <- pcoa_meth_FIN.points
-colnames(pcoa_meth_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_meth_FIN.points_ForPlot$trt <- methRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_meth_FIN.points_ForPlot$plant <- methRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_meth_FIN.points_ForPlot$history <- methRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_meth_FIN.points_ForPlot$history_plant <- c(paste(pcoa_meth_FIN.points_ForPlot$history, pcoa_meth_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_meth_FIN.points_ForPlot <- pcoa_meth_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_meth_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_meth_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_meth_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-meth_FIN_centroids_points_merged <- rbind(pcoa_meth_FIN.cent.dataframe.trts, pcoa_meth_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_meth_FINAL_DF <- as.data.frame(pcoa_meth_FINAL$points)
-
-# Pooled N=8 ordination, then envfit with averaged N=8 environmental matrix
-pcoa_meth_pooled <- cmdscale(methBC_pooled, k = 2, eig = TRUE, add = TRUE)
-pcoa_meth_pooled_DF <- as.data.frame(pcoa_meth_pooled$points)
-stopifnot(identical(rownames(pcoa_meth_pooled_DF), rownames(envfit_pooled_numerical)))
-
-set.seed(2093)
-fit_meth_SFO <- envfit(pcoa_meth_pooled_DF, envfit_pooled_numerical, permutations = 9999)
-fit_meth_SFO
-
-A_meth_SFO <-as.list(fit_meth_SFO$vectors)
-vec_meth_SFO <- as.data.frame(fit_meth_SFO$vectors$arrows*sqrt(fit_meth_SFO$vectors$r)*0.15)
-p_meth_SFO <- as.data.frame(A_meth_SFO$pvals)
-vec_meth_SFO <- cbind(vec_meth_SFO, p_meth_SFO)
-vec_meth_SFO <- subset(vec_meth_SFO, A_meth_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_meth_SFO$labels <- c("P", "Mg", "Ca", "Zn", "Cu", "CEC")
-
-
-#Plot using ggplot2
-df3b <- as.data.frame(meth_FIN_centroids_points_merged)
-
-plot3b <- ggplot(df3b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_meth_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_meth_FIN}%)")) + 
-  geom_segment(data=vec_meth_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_meth_SFO, aes(x=V1-0.01, y=V2), label=vec_meth_SFO$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Methanogenesis")
-
-plot3b
+  ggplot(pts, aes(X1, X2)) +
+    geom_point(aes(shape = History, colour = Treatment), size = 4, stroke = 1.5) +
+    geom_segment(data = vec, aes(x = 0, y = 0, xend = X1, yend = X2),
+                 arrow = arrow(length = unit(0.2, "cm")), alpha = 0.5) +
+    geom_text(data = vec, aes(X1, X2, label = variable), size = 3.5, vjust = -0.5) +
+    labs(x = paste0("PCoA 1 (", pct[1], "%)"), y = paste0("PCoA 2 (", pct[2], "%)"),
+         title = title) +
+    theme_bw() +
+    theme(panel.grid = element_blank())
+}
 ```
 
-PCoA central carbohydrate metabolism, all factors, HISTORY AS SHAPE:
-```{r PCoA: central carbohydrate metabolism; all factors}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_carb_metab <- cmdscale(carb_metabBC, k=2, eig=TRUE, add=TRUE)
-
-explainvar1b_carb_metab <- format(round(pcoa_carb_metab$eig[1] / sum(pcoa_carb_metab$eig), 3) * 100, nsmall = 1) # Using format() to get .0
-explainvar2b_carb_metab <- round(pcoa_carb_metab$eig[2] / sum(pcoa_carb_metab$eig), 3) * 100
-#sum.eigc <- sum(explainvar1b_carb_metab, explainvar2b_carb_metab) #Doesn't work when using format()
-
-explainvar1b_carb_metab # 31.0
-explainvar2b_carb_metab # 14.9
-
-pcoa_carb_metab2.groups <- paste(carb_metabRA_design$Treat, carb_metabRA_design$Plant, carb_metabRA_design$Hist, sep = "_")
-pcoa_carb_metab2.points <- data.frame(pcoa_carb_metab$points, group = pcoa_carb_metab2.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_carb_metab2.L.centroids <- reshape2::melt(pcoa_carb_metab2.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_carb_metab2.centroids <- acast(pcoa_carb_metab2.L.centroids, variable ~ group, mean)
-pcoa_carb_metab2.centroids.se <- acast(pcoa_carb_metab2.L.centroids, variable ~ group, se)
-pcoa_carb_metab2.centroids.sd <- acast(pcoa_carb_metab2.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_carb_metab2.cent.dataframe <- cbind(t(pcoa_carb_metab2.centroids), t(pcoa_carb_metab2.centroids.se))
-colnames(pcoa_carb_metab2.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# No need to run again if these lists have already been declared:
-#trt_H <- c("Baseline", "Baseline", "Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_H <- c("Baseline", "Baseline", "No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#trt_plant_combined <- c(paste(trt, plant, sep = "_"))
-
-pcoa_carb_metab2.cent.dataframe.trts <- as.data.frame(pcoa_carb_metab2.cent.dataframe) 
-pcoa_carb_metab2.cent.dataframe.trts$trt <- as.factor(trt_H)
-pcoa_carb_metab2.cent.dataframe.trts$plant <- as.factor(plant_H)
-pcoa_carb_metab2.cent.dataframe.trts$history <- as.factor(history)
-pcoa_carb_metab2.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined)
-pcoa_carb_metab2.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_carb_metab2.points_ForPlot <- pcoa_carb_metab2.points
-colnames(pcoa_carb_metab2.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_carb_metab2.points_ForPlot$trt <- carb_metabRA_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_carb_metab2.points_ForPlot$plant <- carb_metabRA_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_carb_metab2.points_ForPlot$history <- carb_metabRA_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_carb_metab2.points_ForPlot$history_plant <- c(paste(pcoa_carb_metab2.points_ForPlot$history, pcoa_carb_metab2.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_carb_metab2.points_ForPlot <- pcoa_carb_metab2.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_carb_metab2.points_ForPlot$V1e <- numeric(24)
-pcoa_carb_metab2.points_ForPlot$V2e <- numeric(24)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_carb_metab2.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-carb_metab_centroids_points_merged <- rbind(pcoa_carb_metab2.cent.dataframe.trts, pcoa_carb_metab2.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_carb_metab_DF <- as.data.frame(pcoa_carb_metab$points)
+```{r pooled PCoA biplots: T5, fig.width=10, fig.height=16}
+ggarrange(plotlist = lapply(names(pooled), \(g) plot_pooled_pcoa(g, "T5")),
+          ncol = 2, nrow = 4, common.legend = TRUE, legend = "right")
 ```
 
-```{r carb_metab SSF envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_carb_metab_SSF <- envfit(pcoa_carb_metab_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_carb_metab_SSF
-
-A_carb_metab_SSF <-as.list(fit_carb_metab_SSF$vectors)
-vec_carb_metab_SSF <- as.data.frame(fit_carb_metab_SSF$vectors$arrows*sqrt(fit_carb_metab_SSF$vectors$r)*0.15)
-p_carb_metab_SSF <- as.data.frame(A_carb_metab_SSF$pvals)
-vec_carb_metab_SSF <- cbind(vec_carb_metab_SSF, p_carb_metab_SSF)
-vec_carb_metab_SSF <- subset(vec_carb_metab_SSF, A_carb_metab_SSF$pvals<=0.1) # alpha = 0.1 for EcoSphere paper
-
-#Plot using ggplot2
-df2c <- as.data.frame(carb_metab_centroids_points_merged)
-
-plot2c <- ggplot(df2c, aes(x=V1, y=V2, shape=history_plant, color=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), color="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), color="black") +   
-  geom_point(aes(shape = history_plant, color=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_carb_metab}%)")) + ylab(glue("PCoA 2 ({explainvar2b_carb_metab}%)")) + 
-  geom_segment(data=vec_carb_metab_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4, inherit.aes=F)+ 
- geom_text(data=vec_carb_metab_SSF, aes(x=V1-0.01, y=V2-0.005), label= "%paint removed (redox)", size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=10), axis.text=element_text(size=10, color = "black"), 
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=10)) +
-  theme(legend.text=element_text(size=10), legend.title = element_text(size=10))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           color = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Central Carbohydrate Metabolism")
-
-plot2c
-```
-
-```{r PCoA: central carb metab, FINISH only}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_carb_metab_FINAL <- cmdscale(carb_metabBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-explainvar1_carb_metab_FIN <- round(pcoa_carb_metab_FINAL$eig[1] / sum(pcoa_carb_metab_FINAL$eig), 3) * 100
-explainvar2_carb_metab_FIN <- round(pcoa_carb_metab_FINAL$eig[2] / sum(pcoa_carb_metab_FINAL$eig), 3) * 100
-sum.eig_carb_metab_FIN <- sum(explainvar1_carb_metab_FIN, explainvar2_carb_metab_FIN)
-
-explainvar1_carb_metab_FIN # 36.9
-explainvar2_carb_metab_FIN # 19.4
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-carb_metabRA_FIN_design <- carb_metabRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_carb_metab_FIN.groups <- paste(carb_metabRA_FIN_design$Treat, carb_metabRA_FIN_design$Plant, carb_metabRA_FIN_design$Hist, sep = "_")
-pcoa_carb_metab_FIN.points <- data.frame(pcoa_carb_metab_FINAL$points, group = pcoa_carb_metab_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_carb_metab_FIN.L.centroids <- reshape2::melt(pcoa_carb_metab_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_carb_metab_FIN.centroids <- acast(pcoa_carb_metab_FIN.L.centroids, variable ~ group, mean)
-pcoa_carb_metab_FIN.centroids.se <- acast(pcoa_carb_metab_FIN.L.centroids, variable ~ group, se)
-pcoa_carb_metab_FIN.centroids.sd <- acast(pcoa_carb_metab_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_carb_metab_FIN.cent.dataframe <- cbind(t(pcoa_carb_metab_FIN.centroids), t(pcoa_carb_metab_FIN.centroids.se))
-colnames(pcoa_carb_metab_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors.
-trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_carb_metab_FIN.cent.dataframe.trts <- as.data.frame(pcoa_carb_metab_FIN.cent.dataframe) 
-pcoa_carb_metab_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_carb_metab_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_carb_metab_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_carb_metab_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_carb_metab_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_carb_metab_FIN.points_ForPlot <- pcoa_carb_metab_FIN.points
-colnames(pcoa_carb_metab_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_carb_metab_FIN.points_ForPlot$trt <- carb_metabRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_carb_metab_FIN.points_ForPlot$plant <- carb_metabRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_carb_metab_FIN.points_ForPlot$history <- carb_metabRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_carb_metab_FIN.points_ForPlot$history_plant <- c(paste(pcoa_carb_metab_FIN.points_ForPlot$history, pcoa_carb_metab_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_carb_metab_FIN.points_ForPlot <- pcoa_carb_metab_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_carb_metab_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_carb_metab_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_carb_metab_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-carb_metab_FIN_centroids_points_merged <- rbind(pcoa_carb_metab_FIN.cent.dataframe.trts, pcoa_carb_metab_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_carb_metab_FINAL_DF <- as.data.frame(pcoa_carb_metab_FINAL$points)
-
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_carb_metab_SFO <- envfit(pcoa_carb_metab_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_carb_metab_SFO
-
-A_carb_metab_SFO <-as.list(fit_carb_metab_SFO$vectors)
-vec_carb_metab_SFO <- as.data.frame(fit_carb_metab_SFO$vectors$arrows*sqrt(fit_carb_metab_SFO$vectors$r)*0.15)
-p_carb_metab_SFO <- as.data.frame(A_carb_metab_SFO$pvals)
-vec_carb_metab_SFO <- cbind(vec_carb_metab_SFO, p_carb_metab_SFO)
-vec_carb_metab_SFO <- subset(vec_carb_metab_SFO, A_carb_metab_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_carb_metab_SFO$labels <- c("Mg, pH", "Ca", "pH, Mg", "S", "Mn", "Cu", "HM", "CEC")
-
-
-#Plot using ggplot2
-df3c <- as.data.frame(carb_metab_FIN_centroids_points_merged)
-
-plot3c <- ggplot(df3c, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_carb_metab_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_carb_metab_FIN}%)")) + 
-  geom_segment(data=vec_carb_metab_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_carb_metab_SFO, aes(x=V1, y=V2), label=vec_carb_metab_SFO$labels, size=4, check_overlap = T, nudge_x = 0.01, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Central Carbohydrate Metabolism")
-
-plot3c
-```
-
-PCoA cytochrome C oxidase, all factors, HISTORY AS SHAPE:
-```{r PCoA: cytochrome C oxidase; all factors}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_cytoCox <- cmdscale(cytoCoxBC, k=2, eig=TRUE, add=TRUE)
-
-explainvar1b_cytoCox <- round(pcoa_cytoCox$eig[1] / sum(pcoa_cytoCox$eig), 3) * 100
-explainvar2b_cytoCox <- round(pcoa_cytoCox$eig[2] / sum(pcoa_cytoCox$eig), 3) * 100
-sum.eigc <- sum(explainvar1b_cytoCox, explainvar2b_cytoCox)
-
-explainvar1b_cytoCox # 29.2
-explainvar2b_cytoCox # 22.2
-
-pcoa_cytoCox2.groups <- paste(cytoCoxRA_design$Treat, cytoCoxRA_design$Plant, cytoCoxRA_design$Hist, sep = "_")
-pcoa_cytoCox2.points <- data.frame(pcoa_cytoCox$points, group = pcoa_cytoCox2.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_cytoCox2.L.centroids <- reshape2::melt(pcoa_cytoCox2.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_cytoCox2.centroids <- acast(pcoa_cytoCox2.L.centroids, variable ~ group, mean)
-pcoa_cytoCox2.centroids.se <- acast(pcoa_cytoCox2.L.centroids, variable ~ group, se)
-pcoa_cytoCox2.centroids.sd <- acast(pcoa_cytoCox2.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_cytoCox2.cent.dataframe <- cbind(t(pcoa_cytoCox2.centroids), t(pcoa_cytoCox2.centroids.se))
-colnames(pcoa_cytoCox2.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# No need to run again if these lists have already been declared:
-#trt_H <- c("Baseline", "Baseline", "Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_H <- c("Baseline", "Baseline", "No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#trt_plant_combined <- c(paste(trt, plant, sep = "_"))
-
-pcoa_cytoCox2.cent.dataframe.trts <- as.data.frame(pcoa_cytoCox2.cent.dataframe) 
-pcoa_cytoCox2.cent.dataframe.trts$trt <- as.factor(trt_H)
-pcoa_cytoCox2.cent.dataframe.trts$plant <- as.factor(plant_H)
-pcoa_cytoCox2.cent.dataframe.trts$history <- as.factor(history)
-pcoa_cytoCox2.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined)
-pcoa_cytoCox2.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_cytoCox2.points_ForPlot <- pcoa_cytoCox2.points
-colnames(pcoa_cytoCox2.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_cytoCox2.points_ForPlot$trt <- cytoCoxRA_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_cytoCox2.points_ForPlot$plant <- cytoCoxRA_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_cytoCox2.points_ForPlot$history <- cytoCoxRA_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_cytoCox2.points_ForPlot$history_plant <- c(paste(pcoa_cytoCox2.points_ForPlot$history, pcoa_cytoCox2.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_cytoCox2.points_ForPlot <- pcoa_cytoCox2.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_cytoCox2.points_ForPlot$V1e <- numeric(24)
-pcoa_cytoCox2.points_ForPlot$V2e <- numeric(24)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_cytoCox2.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-cytoCox_centroids_points_merged <- rbind(pcoa_cytoCox2.cent.dataframe.trts, pcoa_cytoCox2.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_cytoCox_DF <- as.data.frame(pcoa_cytoCox$points)
-```
-
-```{r cytoCox SSF envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_cytoCox_SSF <- envfit(pcoa_cytoCox_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_cytoCox_SSF
-
-A_cytoCox_SSF <-as.list(fit_cytoCox_SSF$vectors)
-vec_cytoCox_SSF <- as.data.frame(fit_cytoCox_SSF$vectors$arrows*sqrt(fit_cytoCox_SSF$vectors$r)*0.15)
-p_cytoCox_SSF <- as.data.frame(A_cytoCox_SSF$pvals)
-vec_cytoCox_SSF <- cbind(vec_cytoCox_SSF, p_cytoCox_SSF)
-vec_cytoCox_SSF <- subset(vec_cytoCox_SSF, A_cytoCox_SSF$pvals<=0.1) # alpha = 0.1 for EcoSphere paper
-
-#Plot using ggplot2
-df2d <- as.data.frame(cytoCox_centroids_points_merged)
-
-plot2d <- ggplot(df2d, aes(x=V1, y=V2, shape=history_plant, color=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), color="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), color="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_cytoCox}%)")) + ylab(glue("PCoA 2 ({explainvar2b_cytoCox}%)")) + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=10), axis.text=element_text(size=10, color = "black"), 
-          panel.border = element_rect(color = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=10)) +
-  theme(legend.text=element_text(size=10), legend.title = element_text(size=10))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Cytochrome C Oxidase")
-
-plot2d
-```
-
-```{r PCoA: cco FINAL}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_cytoCox_FINAL <- cmdscale(cytoCoxBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_cytoCox_FIN <- round(pcoa_cytoCox_FINAL$eig[1] / sum(pcoa_cytoCox_FINAL$eig), 3) * 100
-explainvar2_cytoCox_FIN <- round(pcoa_cytoCox_FINAL$eig[2] / sum(pcoa_cytoCox_FINAL$eig), 3) * 100
-sum.eig_cytoCox_FIN <- sum(explainvar1_cytoCox_FIN, explainvar2_cytoCox_FIN)
-
-explainvar1_cytoCox_FIN # 41.4
-explainvar2_cytoCox_FIN # 18.4
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-cytoCoxRA_FIN_design <- cytoCoxRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_cytoCox_FIN.groups <- paste(cytoCoxRA_FIN_design$Treat, cytoCoxRA_FIN_design$Plant, cytoCoxRA_FIN_design$Hist, sep = "_")
-pcoa_cytoCox_FIN.points <- data.frame(pcoa_cytoCox_FINAL$points, group = pcoa_cytoCox_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_cytoCox_FIN.L.centroids <- reshape2::melt(pcoa_cytoCox_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_cytoCox_FIN.centroids <- acast(pcoa_cytoCox_FIN.L.centroids, variable ~ group, mean)
-pcoa_cytoCox_FIN.centroids.se <- acast(pcoa_cytoCox_FIN.L.centroids, variable ~ group, se)
-pcoa_cytoCox_FIN.centroids.sd <- acast(pcoa_cytoCox_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_cytoCox_FIN.cent.dataframe <- cbind(t(pcoa_cytoCox_FIN.centroids), t(pcoa_cytoCox_FIN.centroids.se))
-colnames(pcoa_cytoCox_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors.
-trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_cytoCox_FIN.cent.dataframe.trts <- as.data.frame(pcoa_cytoCox_FIN.cent.dataframe) 
-pcoa_cytoCox_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_cytoCox_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_cytoCox_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_cytoCox_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_cytoCox_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_cytoCox_FIN.points_ForPlot <- pcoa_cytoCox_FIN.points
-colnames(pcoa_cytoCox_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_cytoCox_FIN.points_ForPlot$trt <- cytoCoxRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_cytoCox_FIN.points_ForPlot$plant <- cytoCoxRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_cytoCox_FIN.points_ForPlot$history <- cytoCoxRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_cytoCox_FIN.points_ForPlot$history_plant <- c(paste(pcoa_cytoCox_FIN.points_ForPlot$history, pcoa_cytoCox_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_cytoCox_FIN.points_ForPlot <- pcoa_cytoCox_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_cytoCox_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_cytoCox_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_cytoCox_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-cytoCox_FIN_centroids_points_merged <- rbind(pcoa_cytoCox_FIN.cent.dataframe.trts, pcoa_cytoCox_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_cytoCox_FINAL_DF <- as.data.frame(pcoa_cytoCox_FINAL$points)
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_cytoCox_SFO <- envfit(pcoa_cytoCox_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_cytoCox_SFO
-
-A_cytoCox_SFO <-as.list(fit_cytoCox_SFO$vectors)
-vec_cytoCox_SFO <- as.data.frame(fit_cytoCox_SFO$vectors$arrows*sqrt(fit_cytoCox_SFO$vectors$r)*0.15)
-p_cytoCox_SFO <- as.data.frame(A_cytoCox_SFO$pvals)
-vec_cytoCox_SFO <- cbind(vec_cytoCox_SFO, p_cytoCox_SFO)
-vec_cytoCox_SFO <- subset(vec_cytoCox_SFO, A_cytoCox_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_cytoCox_SFO$labels <- c("P", "Zn", "Cu")
-
-
-#Plot using ggplot2
-df3d <- as.data.frame(cytoCox_FIN_centroids_points_merged)
-
-plot3d <- ggplot(df3d, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + 
-  geom_errorbar(aes(xmax=V1+V1e, xmin=V1-V1e, width=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_cytoCox_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_cytoCox_FIN}%)")) + 
-  geom_segment(data=vec_cytoCox_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_cytoCox_SFO, aes(x=V1-0.005, y=V2), label=vec_cytoCox_SFO$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Cytochrome C Oxidase")
-
-plot3d
-```
-
-Create 4-panel figure of the 4 PCoA plots above:
-```{r 4-panel PCoA plot}
-# 4 panel metaG PCoA with History, start and finish sample (SSF)
-MetaG_pcoa_4panel_SSF <- ggarrange(plot2a, plot2b, plot2c, plot2d, labels = c("(a)", "(b)", "(c)", "(d)"), ncol = 2, nrow = 2, legend = "right", common.legend = T, align = "hv")
-
-MetaG_pcoa_4panel_SSF
-
-#ggsave("../figures/Ecosphere_pub/Figure5.tiff", plot = MetaG_pcoa_4panel_SSF, device="tiff", path=NULL, scale=1, height = 18, width = 22, units = "cm", limitsize = T, bg = "white", dpi = 600)
-
-#ggsave("../figures/Ecosphere_pub/Figure5.png", plot = MetaG_pcoa_4panel_SSF, device="png", path=NULL, scale=1, height = 18, width = 22, units = "cm", limitsize = T, bg = "white", dpi = 600)
-
-# 4 panel metaG PCoA with History, Finish samples only (SFO)
-
-MetaG_pcoa_4panel_SFO <- ggarrange(plot3a, plot3b, plot3c, plot3d, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T)
-
-MetaG_pcoa_4panel_SFO
-```
-
-
-```{r PCoA: sulfate-sulfur assimilation, start&finish}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_SO4_S_Assim <- cmdscale(SO4_S_AssimBC, k=2, eig=TRUE, add=TRUE)
-
-explainvar1b_SO4_S_Assim <- round(pcoa_SO4_S_Assim$eig[1] / sum(pcoa_SO4_S_Assim$eig), 3) * 100
-explainvar2b_SO4_S_Assim <- round(pcoa_SO4_S_Assim$eig[2] / sum(pcoa_SO4_S_Assim$eig), 3) * 100
-sum.eigc <- sum(explainvar1b_SO4_S_Assim, explainvar2b_SO4_S_Assim)
-
-explainvar1b_SO4_S_Assim # 29.4
-explainvar2b_SO4_S_Assim # 13.9
-
-pcoa_SO4_S_Assim2.groups <- paste(SO4_S_AssimRA_design$Treat, SO4_S_AssimRA_design$Plant, SO4_S_AssimRA_design$Hist, sep = "_")
-pcoa_SO4_S_Assim2.points <- data.frame(pcoa_SO4_S_Assim$points, group = pcoa_SO4_S_Assim2.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_SO4_S_Assim2.L.centroids <- reshape2::melt(pcoa_SO4_S_Assim2.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_SO4_S_Assim2.centroids <- acast(pcoa_SO4_S_Assim2.L.centroids, variable ~ group, mean)
-pcoa_SO4_S_Assim2.centroids.se <- acast(pcoa_SO4_S_Assim2.L.centroids, variable ~ group, se)
-pcoa_SO4_S_Assim2.centroids.sd <- acast(pcoa_SO4_S_Assim2.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_SO4_S_Assim2.cent.dataframe <- cbind(t(pcoa_SO4_S_Assim2.centroids), t(pcoa_SO4_S_Assim2.centroids.se))
-colnames(pcoa_SO4_S_Assim2.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# No need to run again if these lists have already been declared:
-#trt_H <- c("Baseline", "Baseline", "Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_H <- c("Baseline", "Baseline", "No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#trt_plant_combined <- c(paste(trt, plant, sep = "_"))
-
-pcoa_SO4_S_Assim2.cent.dataframe.trts <- as.data.frame(pcoa_SO4_S_Assim2.cent.dataframe) 
-pcoa_SO4_S_Assim2.cent.dataframe.trts$trt <- as.factor(trt_H)
-pcoa_SO4_S_Assim2.cent.dataframe.trts$plant <- as.factor(plant_H)
-pcoa_SO4_S_Assim2.cent.dataframe.trts$history <- as.factor(history)
-pcoa_SO4_S_Assim2.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined)
-pcoa_SO4_S_Assim2.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_SO4_S_Assim2.points_ForPlot <- pcoa_SO4_S_Assim2.points
-colnames(pcoa_SO4_S_Assim2.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_SO4_S_Assim2.points_ForPlot$trt <- SO4_S_AssimRA_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_SO4_S_Assim2.points_ForPlot$plant <- SO4_S_AssimRA_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_SO4_S_Assim2.points_ForPlot$history <- SO4_S_AssimRA_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_SO4_S_Assim2.points_ForPlot$history_plant <- c(paste(pcoa_SO4_S_Assim2.points_ForPlot$history, pcoa_SO4_S_Assim2.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_SO4_S_Assim2.points_ForPlot <- pcoa_SO4_S_Assim2.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_SO4_S_Assim2.points_ForPlot$V1e <- numeric(24)
-pcoa_SO4_S_Assim2.points_ForPlot$V2e <- numeric(24)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_SO4_S_Assim2.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-SO4_S_Assim_centroids_points_merged <- rbind(pcoa_SO4_S_Assim2.cent.dataframe.trts, pcoa_SO4_S_Assim2.points_ForPlot)
-
-# Add points data frame
-pcoa_SO4_S_Assim_DF <- as.data.frame(pcoa_SO4_S_Assim$points)
-```
-```{r SO4_S_Assim envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_SO4_S_Assim_SSF <- envfit(pcoa_SO4_S_Assim_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_SO4_S_Assim_SSF
-
-A_SO4_S_Assim_SSF <-as.list(fit_SO4_S_Assim_SSF$vectors)
-vec_SO4_S_Assim_SSF <- as.data.frame(fit_SO4_S_Assim_SSF$vectors$arrows*sqrt(fit_SO4_S_Assim_SSF$vectors$r)*0.15)
-p_SO4_S_Assim_SSF <- as.data.frame(A_SO4_S_Assim_SSF$pvals)
-vec_SO4_S_Assim_SSF <- cbind(vec_SO4_S_Assim_SSF, p_SO4_S_Assim_SSF)
-vec_SO4_S_Assim_SSF <- subset(vec_SO4_S_Assim_SSF, A_SO4_S_Assim_SSF$pvals<=0.05)
-
-# add vector labels for envfit on PCoA:
-vec_SO4_S_Assim_SSF$vec_labels <- "%paint removed (redox)"
-
-#Plot using ggplot2
-df4a <- as.data.frame(SO4_S_Assim_centroids_points_merged)
-
-plot4a <- ggplot(df4a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_SO4_S_Assim}%)")) + ylab(glue("PCoA 2 ({explainvar2b_SO4_S_Assim}%)")) + 
-  geom_segment(data=vec_SO4_S_Assim_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4, inherit.aes=F)+ 
- geom_text(data=vec_SO4_S_Assim_SSF, aes(x=V1-0.004, y=V2-0.003), label= vec_SO4_S_Assim_SSF$vec_labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Sulfate-S Assimilation")
-
-plot4a
-```
-
-```{r SO4_S_Assim finish only}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_SO4_S_Assim_FINAL <- cmdscale(SO4_S_AssimBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_SO4_S_Assim_FIN <- round(pcoa_SO4_S_Assim_FINAL$eig[1] / sum(pcoa_SO4_S_Assim_FINAL$eig), 3) * 100
-explainvar2_SO4_S_Assim_FIN <- round(pcoa_SO4_S_Assim_FINAL$eig[2] / sum(pcoa_SO4_S_Assim_FINAL$eig), 3) * 100
-sum.eig_SO4_S_Assim_FIN <- sum(explainvar1_SO4_S_Assim_FIN, explainvar2_SO4_S_Assim_FIN)
-
-explainvar1_SO4_S_Assim_FIN # 34.5
-explainvar2_SO4_S_Assim_FIN # 18.1
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-SO4_S_AssimRA_FIN_design <- SO4_S_AssimRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_SO4_S_Assim_FIN.groups <- paste(SO4_S_AssimRA_FIN_design$Treat, SO4_S_AssimRA_FIN_design$Plant, SO4_S_AssimRA_FIN_design$Hist, sep = "_")
-pcoa_SO4_S_Assim_FIN.points <- data.frame(pcoa_SO4_S_Assim_FINAL$points, group = pcoa_SO4_S_Assim_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_SO4_S_Assim_FIN.L.centroids <- reshape2::melt(pcoa_SO4_S_Assim_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_SO4_S_Assim_FIN.centroids <- acast(pcoa_SO4_S_Assim_FIN.L.centroids, variable ~ group, mean)
-pcoa_SO4_S_Assim_FIN.centroids.se <- acast(pcoa_SO4_S_Assim_FIN.L.centroids, variable ~ group, se)
-pcoa_SO4_S_Assim_FIN.centroids.sd <- acast(pcoa_SO4_S_Assim_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_SO4_S_Assim_FIN.cent.dataframe <- cbind(t(pcoa_SO4_S_Assim_FIN.centroids), t(pcoa_SO4_S_Assim_FIN.centroids.se))
-colnames(pcoa_SO4_S_Assim_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (don't need to run again, if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts <- as.data.frame(pcoa_SO4_S_Assim_FIN.cent.dataframe) 
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_SO4_S_Assim_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_SO4_S_Assim_FIN.points_ForPlot <- pcoa_SO4_S_Assim_FIN.points
-colnames(pcoa_SO4_S_Assim_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_SO4_S_Assim_FIN.points_ForPlot$trt <- SO4_S_AssimRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_SO4_S_Assim_FIN.points_ForPlot$plant <- SO4_S_AssimRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_SO4_S_Assim_FIN.points_ForPlot$history <- SO4_S_AssimRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_SO4_S_Assim_FIN.points_ForPlot$history_plant <- c(paste(pcoa_SO4_S_Assim_FIN.points_ForPlot$history, pcoa_SO4_S_Assim_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_SO4_S_Assim_FIN.points_ForPlot <- pcoa_SO4_S_Assim_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_SO4_S_Assim_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_SO4_S_Assim_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_SO4_S_Assim_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-SO4_S_Assim_FIN_centroids_points_merged <- rbind(pcoa_SO4_S_Assim_FIN.cent.dataframe.trts, pcoa_SO4_S_Assim_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_SO4_S_Assim_FINAL_DF <- as.data.frame(pcoa_SO4_S_Assim_FINAL$points)
-
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_SO4_S_Assim_SFO <- envfit(pcoa_SO4_S_Assim_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_SO4_S_Assim_SFO
-
-A_SO4_S_Assim_SFO <-as.list(fit_SO4_S_Assim_SFO$vectors)
-vec_SO4_S_Assim_SFO <- as.data.frame(fit_SO4_S_Assim_SFO$vectors$arrows*sqrt(fit_SO4_S_Assim_SFO$vectors$r)*0.15)
-p_SO4_S_Assim_SFO <- as.data.frame(A_SO4_S_Assim_SFO$pvals)
-vec_SO4_S_Assim_SFO <- cbind(vec_SO4_S_Assim_SFO, p_SO4_S_Assim_SFO)
-vec_SO4_S_Assim_SFO <- subset(vec_SO4_S_Assim_SFO, A_SO4_S_Assim_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_SO4_S_Assim_SFO$labels <- c("Mg", "Ca", "S", "Zn", "Mn", "Cu", "CEC")
-
-
-#Plot using ggplot2
-df5a <- as.data.frame(SO4_S_Assim_FIN_centroids_points_merged)
-
-plot5a <- ggplot(df5a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_SO4_S_Assim_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_SO4_S_Assim_FIN}%)")) + 
-  geom_segment(data=vec_SO4_S_Assim_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_SO4_S_Assim_SFO, aes(x=V1-0.007, y=V2+0.003), label=vec_SO4_S_Assim_SFO$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Sulfate-S Assimilation Week 8")
-
-plot5a
-```
-
-```{r PCOA: assimilatory sulfate reduction}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_Assim_SO4_red <- cmdscale(Assim_SO4_redBC, k=2, eig=TRUE, add=TRUE)
-
-explainvar1b_Assim_SO4_red <- round(pcoa_Assim_SO4_red$eig[1] / sum(pcoa_Assim_SO4_red$eig), 3) * 100
-explainvar2b_Assim_SO4_red <- round(pcoa_Assim_SO4_red$eig[2] / sum(pcoa_Assim_SO4_red$eig), 3) * 100
-sum.eigc <- sum(explainvar1b_Assim_SO4_red, explainvar2b_Assim_SO4_red)
-
-explainvar1b_Assim_SO4_red # 32.9
-explainvar2b_Assim_SO4_red # 15.2
-
-pcoa_Assim_SO4_red2.groups <- paste(Assim_SO4_redRA_design$Treat, Assim_SO4_redRA_design$Plant, Assim_SO4_redRA_design$Hist, sep = "_")
-pcoa_Assim_SO4_red2.points <- data.frame(pcoa_Assim_SO4_red$points, group = pcoa_Assim_SO4_red2.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_Assim_SO4_red2.L.centroids <- reshape2::melt(pcoa_Assim_SO4_red2.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_Assim_SO4_red2.centroids <- acast(pcoa_Assim_SO4_red2.L.centroids, variable ~ group, mean)
-pcoa_Assim_SO4_red2.centroids.se <- acast(pcoa_Assim_SO4_red2.L.centroids, variable ~ group, se)
-pcoa_Assim_SO4_red2.centroids.sd <- acast(pcoa_Assim_SO4_red2.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_Assim_SO4_red2.cent.dataframe <- cbind(t(pcoa_Assim_SO4_red2.centroids), t(pcoa_Assim_SO4_red2.centroids.se))
-colnames(pcoa_Assim_SO4_red2.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# No need to run again if these lists have already been declared:
-#trt_H <- c("Baseline", "Baseline", "Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_H <- c("Baseline", "Baseline", "No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#trt_plant_combined <- c(paste(trt, plant, sep = "_"))
-
-pcoa_Assim_SO4_red2.cent.dataframe.trts <- as.data.frame(pcoa_Assim_SO4_red2.cent.dataframe) 
-pcoa_Assim_SO4_red2.cent.dataframe.trts$trt <- as.factor(trt_H)
-pcoa_Assim_SO4_red2.cent.dataframe.trts$plant <- as.factor(plant_H)
-pcoa_Assim_SO4_red2.cent.dataframe.trts$history <- as.factor(history)
-pcoa_Assim_SO4_red2.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined)
-pcoa_Assim_SO4_red2.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_Assim_SO4_red2.points_ForPlot <- pcoa_Assim_SO4_red2.points
-colnames(pcoa_Assim_SO4_red2.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_Assim_SO4_red2.points_ForPlot$trt <- Assim_SO4_redRA_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_Assim_SO4_red2.points_ForPlot$plant <- Assim_SO4_redRA_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_Assim_SO4_red2.points_ForPlot$history <- Assim_SO4_redRA_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_Assim_SO4_red2.points_ForPlot$history_plant <- c(paste(pcoa_Assim_SO4_red2.points_ForPlot$history, pcoa_Assim_SO4_red2.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_Assim_SO4_red2.points_ForPlot <- pcoa_Assim_SO4_red2.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_Assim_SO4_red2.points_ForPlot$V1e <- numeric(24)
-pcoa_Assim_SO4_red2.points_ForPlot$V2e <- numeric(24)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_Assim_SO4_red2.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-Assim_SO4_red_centroids_points_merged <- rbind(pcoa_Assim_SO4_red2.cent.dataframe.trts, pcoa_Assim_SO4_red2.points_ForPlot)
-
-# Add points data frame
-pcoa_Assim_SO4_red_DF <- as.data.frame(pcoa_Assim_SO4_red$points)
-```
-```{r Assim_SO4_red envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_Assim_SO4_red_SSF <- envfit(pcoa_Assim_SO4_red_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_Assim_SO4_red_SSF
-
-A_Assim_SO4_red_SSF <-as.list(fit_Assim_SO4_red_SSF$vectors)
-vec_Assim_SO4_red_SSF <- as.data.frame(fit_Assim_SO4_red_SSF$vectors$arrows*sqrt(fit_Assim_SO4_red_SSF$vectors$r)*0.15)
-p_Assim_SO4_red_SSF <- as.data.frame(A_Assim_SO4_red_SSF$pvals)
-vec_Assim_SO4_red_SSF <- cbind(vec_Assim_SO4_red_SSF, p_Assim_SO4_red_SSF)
-vec_Assim_SO4_red_SSF <- subset(vec_Assim_SO4_red_SSF, A_Assim_SO4_red_SSF$pvals<=0.05)
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_Assim_SO4_red_SSF$X_nudge <- 0
-vec_Assim_SO4_red_SSF$Y_nudge <- 0.005
-
-# Add column with vector labels for envfit on PCoA:
-vec_Assim_SO4_red_SSF$vec_labels <- "%paint removed (redox)"
-
-#Plot using ggplot2
-df4b <- as.data.frame(Assim_SO4_red_centroids_points_merged)
-
-plot4b <- ggplot(df4b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_Assim_SO4_red}%)")) + ylab(glue("PCoA 2 ({explainvar2b_Assim_SO4_red}%)")) + 
-  geom_segment(data=vec_Assim_SO4_red_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4, inherit.aes=F)+ 
- geom_text(data=vec_Assim_SO4_red_SSF, aes(x=V1, y=V2), label= vec_Assim_SO4_red_SSF$vec_labels, size=4, nudge_x = vec_Assim_SO4_red_SSF$X_nudge, nudge_y = vec_Assim_SO4_red_SSF$Y_nudge, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Assimilatory Sulfate Reduction")
-
-plot4b
-
-#ggsave("../figures/Thesis/Assim_sulf_red.png", plot = plot4b, path=NULL, device="png", scale=1, height = 7, width = 10, limitsize = TRUE, dpi = 300)
-```
-
-```{r PCoA: Assim_SO4_red finish only}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_Assim_SO4_red_FINAL <- cmdscale(Assim_SO4_redBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_Assim_SO4_red_FIN <- round(pcoa_Assim_SO4_red_FINAL$eig[1] / sum(pcoa_Assim_SO4_red_FINAL$eig), 3) * 100
-explainvar2_Assim_SO4_red_FIN <- round(pcoa_Assim_SO4_red_FINAL$eig[2] / sum(pcoa_Assim_SO4_red_FINAL$eig), 3) * 100
-sum.eig_Assim_SO4_red_FIN <- sum(explainvar1_Assim_SO4_red_FIN, explainvar2_Assim_SO4_red_FIN)
-
-explainvar1_Assim_SO4_red_FIN # 40.8
-explainvar2_Assim_SO4_red_FIN # 19.4
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-Assim_SO4_redRA_FIN_design <- Assim_SO4_redRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_Assim_SO4_red_FIN.groups <- paste(Assim_SO4_redRA_FIN_design$Treat, Assim_SO4_redRA_FIN_design$Plant, Assim_SO4_redRA_FIN_design$Hist, sep = "_")
-pcoa_Assim_SO4_red_FIN.points <- data.frame(pcoa_Assim_SO4_red_FINAL$points, group = pcoa_Assim_SO4_red_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_Assim_SO4_red_FIN.L.centroids <- reshape2::melt(pcoa_Assim_SO4_red_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_Assim_SO4_red_FIN.centroids <- acast(pcoa_Assim_SO4_red_FIN.L.centroids, variable ~ group, mean)
-pcoa_Assim_SO4_red_FIN.centroids.se <- acast(pcoa_Assim_SO4_red_FIN.L.centroids, variable ~ group, se)
-pcoa_Assim_SO4_red_FIN.centroids.sd <- acast(pcoa_Assim_SO4_red_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_Assim_SO4_red_FIN.cent.dataframe <- cbind(t(pcoa_Assim_SO4_red_FIN.centroids), t(pcoa_Assim_SO4_red_FIN.centroids.se))
-colnames(pcoa_Assim_SO4_red_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts <- as.data.frame(pcoa_Assim_SO4_red_FIN.cent.dataframe) 
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_Assim_SO4_red_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_Assim_SO4_red_FIN.points_ForPlot <- pcoa_Assim_SO4_red_FIN.points
-colnames(pcoa_Assim_SO4_red_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_Assim_SO4_red_FIN.points_ForPlot$trt <- Assim_SO4_redRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_Assim_SO4_red_FIN.points_ForPlot$plant <- Assim_SO4_redRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_Assim_SO4_red_FIN.points_ForPlot$history <- Assim_SO4_redRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_Assim_SO4_red_FIN.points_ForPlot$history_plant <- c(paste(pcoa_Assim_SO4_red_FIN.points_ForPlot$history, pcoa_Assim_SO4_red_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_Assim_SO4_red_FIN.points_ForPlot <- pcoa_Assim_SO4_red_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_Assim_SO4_red_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_Assim_SO4_red_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_Assim_SO4_red_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-Assim_SO4_red_FIN_centroids_points_merged <- rbind(pcoa_Assim_SO4_red_FIN.cent.dataframe.trts, pcoa_Assim_SO4_red_FIN.points_ForPlot)
-
-# Add points data frame
-pcoa_Assim_SO4_red_FINAL_DF <- as.data.frame(pcoa_Assim_SO4_red_FINAL$points)
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_Assim_SO4_red_SFO <- envfit(pcoa_Assim_SO4_red_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_Assim_SO4_red_SFO
-
-A_Assim_SO4_red_SFO <-as.list(fit_Assim_SO4_red_SFO$vectors)
-vec_Assim_SO4_red_SFO <- as.data.frame(fit_Assim_SO4_red_SFO$vectors$arrows*sqrt(fit_Assim_SO4_red_SFO$vectors$r)*0.15)
-p_Assim_SO4_red_SFO <- as.data.frame(A_Assim_SO4_red_SFO$pvals)
-vec_Assim_SO4_red_SFO <- cbind(vec_Assim_SO4_red_SFO, p_Assim_SO4_red_SFO)
-vec_Assim_SO4_red_SFO <- subset(vec_Assim_SO4_red_SFO, A_Assim_SO4_red_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_Assim_SO4_red_SFO$labels <- c("%C", "%N","Mg", "Ca", "pH","S", "Zn", "Mn", "Cu", "CEC")
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_Assim_SO4_red_SFO$X_nudge <- c(0, -0.006, -0.005, -0.005, -0.01, -0.01, -0.005, -0.01, -0.01, 0)
-vec_Assim_SO4_red_SFO$Y_nudge <- c(0.007, 0, 0.005, 0.005, 0, 0, 0.005, 0, 0, 0.005)
-
-
-#Plot using ggplot2
-df5b <- as.data.frame(Assim_SO4_red_FIN_centroids_points_merged)
-
-plot5b <- ggplot(df5b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_Assim_SO4_red_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_Assim_SO4_red_FIN}%)"))+
-  geom_segment(data=vec_Assim_SO4_red_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
-  geom_text(data=vec_Assim_SO4_red_SFO, aes(x=V1, y=V2), label= vec_Assim_SO4_red_SFO$labels, size=4, nudge_x = vec_Assim_SO4_red_SFO$X_nudge, nudge_y = vec_Assim_SO4_red_SFO$Y_nudge, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Assimilatory Sulfate Reduction Week 8")
-
-plot5b
+```{r pooled PCoA biplots: cumulative, fig.width=10, fig.height=16}
+ggarrange(plotlist = lapply(names(pooled), \(g) plot_pooled_pcoa(g, "Cumulative")),
+          ncol = 2, nrow = 4, common.legend = TRUE, legend = "right")
 ```
 
 ```{r PCoA: dissimilatory sulfate reduction}
@@ -2478,159 +1160,6 @@ Dissim_SO4_red_centroids_points_merged <- rbind(pcoa_Dissim_SO4_red2.cent.datafr
 # Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
 pcoa_Dissim_SO4_red_DF <- as.data.frame(pcoa_Dissim_SO4_red$points)
 ```
-```{r Dissim_SO4_red envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_Dissim_SO4_red_SSF <- envfit(pcoa_Dissim_SO4_red_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_Dissim_SO4_red_SSF
-
-A_Dissim_SO4_red_SSF <-as.list(fit_Dissim_SO4_red_SSF$vectors)
-vec_Dissim_SO4_red_SSF <- as.data.frame(fit_Dissim_SO4_red_SSF$vectors$arrows*sqrt(fit_Dissim_SO4_red_SSF$vectors$r)*0.15)
-p_Dissim_SO4_red_SSF <- as.data.frame(A_Dissim_SO4_red_SSF$pvals)
-vec_Dissim_SO4_red_SSF <- cbind(vec_Dissim_SO4_red_SSF, p_Dissim_SO4_red_SSF)
-vec_Dissim_SO4_red_SSF <- subset(vec_Dissim_SO4_red_SSF, A_Dissim_SO4_red_SSF$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_Dissim_SO4_red_SSF$labels <- expression(paste("CH"[4]))
-
-#Plot using ggplot2
-df4c <- as.data.frame(Dissim_SO4_red_centroids_points_merged)
-
-plot4c <- ggplot(df4c, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_Dissim_SO4_red}%)")) + ylab(glue("PCoA 2 ({explainvar2b_Dissim_SO4_red}%)")) + 
-  geom_segment(data=vec_Dissim_SO4_red_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
-  geom_text(data=vec_Dissim_SO4_red_SSF, aes(x=V1+0.005, y=V2-0.005), label=vec_Dissim_SO4_red_SSF$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Dissimilatory Sulfate Reduction")
-
-plot4c
-```
-
-```{r PCoA: dissimilatory sulfate reduction, finish only}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_Dissim_SO4_red_FINAL <- cmdscale(Dissim_SO4_redBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_Dissim_SO4_red_FIN <- round(pcoa_Dissim_SO4_red_FINAL$eig[1] / sum(pcoa_Dissim_SO4_red_FINAL$eig), 3) * 100
-explainvar2_Dissim_SO4_red_FIN <- round(pcoa_Dissim_SO4_red_FINAL$eig[2] / sum(pcoa_Dissim_SO4_red_FINAL$eig), 3) * 100
-
-explainvar1_Dissim_SO4_red_FIN # 49.8
-explainvar2_Dissim_SO4_red_FIN # 19.3
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-Dissim_SO4_redRA_FIN_design <- Dissim_SO4_redRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_Dissim_SO4_red_FIN.groups <- paste(Dissim_SO4_redRA_FIN_design$Treat, Dissim_SO4_redRA_FIN_design$Plant, Dissim_SO4_redRA_FIN_design$Hist, sep = "_")
-pcoa_Dissim_SO4_red_FIN.points <- data.frame(pcoa_Dissim_SO4_red_FINAL$points, group = pcoa_Dissim_SO4_red_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_Dissim_SO4_red_FIN.L.centroids <- reshape2::melt(pcoa_Dissim_SO4_red_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_Dissim_SO4_red_FIN.centroids <- acast(pcoa_Dissim_SO4_red_FIN.L.centroids, variable ~ group, mean)
-pcoa_Dissim_SO4_red_FIN.centroids.se <- acast(pcoa_Dissim_SO4_red_FIN.L.centroids, variable ~ group, se)
-pcoa_Dissim_SO4_red_FIN.centroids.sd <- acast(pcoa_Dissim_SO4_red_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_Dissim_SO4_red_FIN.cent.dataframe <- cbind(t(pcoa_Dissim_SO4_red_FIN.centroids), t(pcoa_Dissim_SO4_red_FIN.centroids.se))
-colnames(pcoa_Dissim_SO4_red_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts <- as.data.frame(pcoa_Dissim_SO4_red_FIN.cent.dataframe) 
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_Dissim_SO4_red_FIN.points_ForPlot <- pcoa_Dissim_SO4_red_FIN.points
-colnames(pcoa_Dissim_SO4_red_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$trt <- Dissim_SO4_redRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$plant <- Dissim_SO4_redRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$history <- Dissim_SO4_redRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$history_plant <- c(paste(pcoa_Dissim_SO4_red_FIN.points_ForPlot$history, pcoa_Dissim_SO4_red_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_Dissim_SO4_red_FIN.points_ForPlot <- pcoa_Dissim_SO4_red_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_Dissim_SO4_red_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-# Merge:
-Dissim_SO4_red_FIN_centroids_points_merged <- rbind(pcoa_Dissim_SO4_red_FIN.cent.dataframe.trts, pcoa_Dissim_SO4_red_FIN.points_ForPlot)
-
-# Add points data frame
-pcoa_Dissim_SO4_red_FINAL_DF <- as.data.frame(pcoa_Dissim_SO4_red_FINAL$points)
-
-
-# Run envfit with new Soil data (SFO = Soil Finish Only):
-set.seed(2093); fit_Dissim_SO4_red_SFO <- envfit(as.data.frame(pooled$Dissim_SO4_red$pcoa$points), envfit_pooled_numerical, permutations = 9999)
-fit_Dissim_SO4_red_SFO
-
-A_Dissim_SO4_red_SFO <-as.list(fit_Dissim_SO4_red_SFO$vectors)
-vec_Dissim_SO4_red_SFO <- as.data.frame(fit_Dissim_SO4_red_SFO$vectors$arrows*sqrt(fit_Dissim_SO4_red_SFO$vectors$r)*0.15)
-p_Dissim_SO4_red_SFO <- as.data.frame(A_Dissim_SO4_red_SFO$pvals)
-vec_Dissim_SO4_red_SFO <- cbind(vec_Dissim_SO4_red_SFO, p_Dissim_SO4_red_SFO)
-vec_Dissim_SO4_red_SFO <- subset(vec_Dissim_SO4_red_SFO, A_Dissim_SO4_red_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_Dissim_SO4_red_SFO$labels <- c(expression(paste("CH"[4])), "P", "Ca", "Cu")
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_Dissim_SO4_red_SFO$X_nudge <- c(-0.01, 0, 0.01, 0)
-vec_Dissim_SO4_red_SFO$Y_nudge <- c(0, 0.005, 0, 0.005)
-
-
-#Plot using ggplot2
-df5c <- as.data.frame(Dissim_SO4_red_FIN_centroids_points_merged)
-
-plot5c <- ggplot(df5c, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_Dissim_SO4_red_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_Dissim_SO4_red_FIN}%)")) + 
-  geom_segment(data=vec_Dissim_SO4_red_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
-  geom_text(data=vec_Dissim_SO4_red_SFO, aes(x=V1, y=V2), label= vec_Dissim_SO4_red_SFO$labels, size=4, nudge_x = vec_Dissim_SO4_red_SFO$X_nudge, nudge_y = vec_Dissim_SO4_red_SFO$Y_nudge, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Dissimilatory Sulfate Reduction Week 8")
-
-plot5c
-```
 
 ```{r PCoA: Thiosulfate oxidation by SOX complex}
 # Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
@@ -2691,171 +1220,8 @@ ThioSOX_centroids_points_merged <- rbind(pcoa_ThioSOX2.cent.dataframe.trts, pcoa
 # Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
 pcoa_ThioSOX_DF <- as.data.frame(pcoa_ThioSOX$points)
 ```
-```{r ThioSox envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_ThioSOX_SSF <- envfit(pcoa_ThioSOX_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_ThioSOX_SSF
-
-A_ThioSOX_SSF <-as.list(fit_ThioSOX_SSF$vectors)
-vec_ThioSOX_SSF <- as.data.frame(fit_ThioSOX_SSF$vectors$arrows*sqrt(fit_ThioSOX_SSF$vectors$r)*0.15)
-p_ThioSOX_SSF <- as.data.frame(A_ThioSOX_SSF$pvals)
-vec_ThioSOX_SSF <- cbind(vec_ThioSOX_SSF, p_ThioSOX_SSF)
-vec_ThioSOX_SSF <- subset(vec_ThioSOX_SSF, A_ThioSOX_SSF$pvals<=0.05)
-
-#Plot using ggplot2
-df4d <- as.data.frame(ThioSOX_centroids_points_merged)
-
-plot4d <- ggplot(df4d, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_ThioSOX}%)")) + ylab(glue("PCoA 2 ({explainvar2b_ThioSOX}%)")) + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Thiosulfate Oxidation by SOX")
-
-plot4d
-```
-
-```{r PCoA: ThioSox, finish only}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_ThioSOX_FINAL <- cmdscale(ThioSOXBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_ThioSOX_FIN <- round(pcoa_ThioSOX_FINAL$eig[1] / sum(pcoa_ThioSOX_FINAL$eig), 3) * 100
-explainvar2_ThioSOX_FIN <- round(pcoa_ThioSOX_FINAL$eig[2] / sum(pcoa_ThioSOX_FINAL$eig), 3) * 100
-
-explainvar1_ThioSOX_FIN # 56.2
-explainvar2_ThioSOX_FIN # 10.9
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-ThioSOXRA_FIN_design <- ThioSOXRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_ThioSOX_FIN.groups <- paste(ThioSOXRA_FIN_design$Treat, ThioSOXRA_FIN_design$Plant, ThioSOXRA_FIN_design$Hist, sep = "_")
-pcoa_ThioSOX_FIN.points <- data.frame(pcoa_ThioSOX_FINAL$points, group = pcoa_ThioSOX_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_ThioSOX_FIN.L.centroids <- reshape2::melt(pcoa_ThioSOX_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_ThioSOX_FIN.centroids <- acast(pcoa_ThioSOX_FIN.L.centroids, variable ~ group, mean)
-pcoa_ThioSOX_FIN.centroids.se <- acast(pcoa_ThioSOX_FIN.L.centroids, variable ~ group, se)
-pcoa_ThioSOX_FIN.centroids.sd <- acast(pcoa_ThioSOX_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_ThioSOX_FIN.cent.dataframe <- cbind(t(pcoa_ThioSOX_FIN.centroids), t(pcoa_ThioSOX_FIN.centroids.se))
-colnames(pcoa_ThioSOX_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_ThioSOX_FIN.cent.dataframe.trts <- as.data.frame(pcoa_ThioSOX_FIN.cent.dataframe) 
-pcoa_ThioSOX_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_ThioSOX_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_ThioSOX_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_ThioSOX_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_ThioSOX_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_ThioSOX_FIN.points_ForPlot <- pcoa_ThioSOX_FIN.points
-colnames(pcoa_ThioSOX_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_ThioSOX_FIN.points_ForPlot$trt <- ThioSOXRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_ThioSOX_FIN.points_ForPlot$plant <- ThioSOXRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_ThioSOX_FIN.points_ForPlot$history <- ThioSOXRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_ThioSOX_FIN.points_ForPlot$history_plant <- c(paste(pcoa_ThioSOX_FIN.points_ForPlot$history, pcoa_ThioSOX_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_ThioSOX_FIN.points_ForPlot <- pcoa_ThioSOX_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_ThioSOX_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_ThioSOX_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_ThioSOX_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-ThioSOX_FIN_centroids_points_merged <- rbind(pcoa_ThioSOX_FIN.cent.dataframe.trts, pcoa_ThioSOX_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_ThioSOX_FINAL_DF <- as.data.frame(pcoa_ThioSOX_FINAL$points)
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_ThioSOX_SFO <- envfit(pcoa_ThioSOX_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_ThioSOX_SFO
-
-A_ThioSOX_SFO <-as.list(fit_ThioSOX_SFO$vectors)
-vec_ThioSOX_SFO <- as.data.frame(fit_ThioSOX_SFO$vectors$arrows*sqrt(fit_ThioSOX_SFO$vectors$r)*0.15)
-p_ThioSOX_SFO <- as.data.frame(A_ThioSOX_SFO$pvals)
-vec_ThioSOX_SFO <- cbind(vec_ThioSOX_SFO, p_ThioSOX_SFO)
-vec_ThioSOX_SFO <- subset(vec_ThioSOX_SFO, A_ThioSOX_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_ThioSOX_SFO$labels <- c("Mg", "Ca", "pH", "S", "CEC")
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_ThioSOX_SFO$X_nudge <- c(0, 0, 0.007, 0, 0)
-vec_ThioSOX_SFO$Y_nudge <- c(0, 0, 0.003, 0, 0)
-
-#Plot using ggplot2
-df5d <- as.data.frame(ThioSOX_FIN_centroids_points_merged)
-
-plot5d <- ggplot(df5d, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_ThioSOX_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_ThioSOX_FIN}%)")) + 
-  geom_segment(data=vec_ThioSOX_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_ThioSOX_SFO, aes(x=V1+0.003, y=V2+0.006), label=vec_ThioSOX_SFO$labels, nudge_x = vec_ThioSOX_SFO$X_nudge, nudge_y = vec_ThioSOX_SFO$Y_nudge, size=3.5, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Thiosulfate Oxidation by SOX Week 8")
-
-plot5d
-```
 
 Create 4-panel figure of the 4 Sulfur PCoA plots above:
-```{r 4-panel S PCoA plots}
-# 4 panel Sulfur PCoA, start and finish samples (SSF)
-S_pcoa_4panel_SSF <- ggarrange(plot4a, plot4b, plot4c, plot4d, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T)
-
-S_pcoa_4panel_SSF
-
-#ggsave("../figures/Fe_S_manuscript/S_pcoa4panel_SSF.png", plot = S_pcoa_4panel_SSF, device=NULL, path=NULL, scale=1, height = 7, width = 12, limitsize = TRUE, dpi = 600)
-
-#ggsave("../figures/Fe_S_manuscript/Figure3.tiff", plot = S_pcoa_4panel_SSF, device="tiff", path=NULL, scale=1, height = 7, width = 13, limitsize = TRUE, dpi = 600, bg = "white")
-
-# 4 panel Sulfur PCoA, Finish samples only (SFO)
-S_pcoa_4panel_SFO <- ggarrange(plot5a, plot5b, plot5c, plot5d, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T)
-
-S_pcoa_4panel_SFO
-
-#ggsave("../figures/Fe_S_manuscript/S_pcoa4panel_SFO.png", plot = S_pcoa_4panel_SFO, device=NULL, path=NULL, scale=1, height = 7, width = 12, limitsize = TRUE, dpi = 600)
-```
 
 ```{r FeGenie total: SSF}
 # Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
@@ -2916,163 +1282,6 @@ FeGenie_centroids_points_merged <- rbind(pcoa_FeGenie.cent.dataframe.trts, pcoa_
 # Add points data frame
 pcoa_FeGenie_DF <- as.data.frame(pcoa_FeGenie$points)
 ```
-```{r FeGenie SSF envit and plot}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_FeGenie_SSF <- envfit(pcoa_FeGenie_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_FeGenie_SSF
-
-A_FeGenie_SSF <-as.list(fit_FeGenie_SSF$vectors)
-vec_FeGenie_SSF <- as.data.frame(fit_FeGenie_SSF$vectors$arrows*sqrt(fit_FeGenie_SSF$vectors$r)*0.15)
-p_FeGenie_SSF <- as.data.frame(A_FeGenie_SSF$pvals)
-vec_FeGenie_SSF <- cbind(vec_FeGenie_SSF, p_FeGenie_SSF)
-vec_FeGenie_SSF <- subset(vec_FeGenie_SSF, A_FeGenie_SSF$pvals<=0.05)
-
-
-#Plot using ggplot2
-df6a <- as.data.frame(FeGenie_centroids_points_merged)
-
-plot6a <- ggplot(df6a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_FeGenie}%)")) + ylab(glue("PCoA 2 ({explainvar2_FeGenie}%)")) + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Fe Genes Week 0 (Baseline) and Week 8")
-
-plot6a
-```
-
-```{r FeGenie total: SFO}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_FeGenie_FINAL <- cmdscale(FeGenieBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_FeGenie_FIN <- round(pcoa_FeGenie_FINAL$eig[1] / sum(pcoa_FeGenie_FINAL$eig), 3) * 100
-explainvar2_FeGenie_FIN <- round(pcoa_FeGenie_FINAL$eig[2] / sum(pcoa_FeGenie_FINAL$eig), 3) * 100
-
-explainvar1_FeGenie_FIN # 43.5
-explainvar2_FeGenie_FIN # 13.5
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-FeGenieRA_FIN_design <- FeGenieRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_FeGenie_FIN.groups <- paste(FeGenieRA_FIN_design$Treat, FeGenieRA_FIN_design$Plant, FeGenieRA_FIN_design$Hist, sep = "_")
-pcoa_FeGenie_FIN.points <- data.frame(pcoa_FeGenie_FINAL$points, group = pcoa_FeGenie_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_FeGenie_FIN.L.centroids <- reshape2::melt(pcoa_FeGenie_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_FeGenie_FIN.centroids <- acast(pcoa_FeGenie_FIN.L.centroids, variable ~ group, mean)
-pcoa_FeGenie_FIN.centroids.se <- acast(pcoa_FeGenie_FIN.L.centroids, variable ~ group, se)
-pcoa_FeGenie_FIN.centroids.sd <- acast(pcoa_FeGenie_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_FeGenie_FIN.cent.dataframe <- cbind(t(pcoa_FeGenie_FIN.centroids), t(pcoa_FeGenie_FIN.centroids.se))
-colnames(pcoa_FeGenie_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_FeGenie_FIN.cent.dataframe.trts <- as.data.frame(pcoa_FeGenie_FIN.cent.dataframe) 
-pcoa_FeGenie_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_FeGenie_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_FeGenie_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_FeGenie_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_FeGenie_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_FeGenie_FIN.points_ForPlot <- pcoa_FeGenie_FIN.points
-colnames(pcoa_FeGenie_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_FeGenie_FIN.points_ForPlot$trt <- FeGenieRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_FeGenie_FIN.points_ForPlot$plant <- FeGenieRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_FeGenie_FIN.points_ForPlot$history <- FeGenieRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_FeGenie_FIN.points_ForPlot$history_plant <- c(paste(pcoa_FeGenie_FIN.points_ForPlot$history, pcoa_FeGenie_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_FeGenie_FIN.points_ForPlot <- pcoa_FeGenie_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_FeGenie_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_FeGenie_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_FeGenie_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-FeGenie_FIN_centroids_points_merged <- rbind(pcoa_FeGenie_FIN.cent.dataframe.trts, pcoa_FeGenie_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_FeGenie_FINAL_DF <- as.data.frame(pcoa_FeGenie_FINAL$points)
-
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_FeGenie_SFO <- envfit(pcoa_FeGenie_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_FeGenie_SFO
-
-A_FeGenie_SFO <-as.list(fit_FeGenie_SFO$vectors)
-vec_FeGenie_SFO <- as.data.frame(fit_FeGenie_SFO$vectors$arrows*sqrt(fit_FeGenie_SFO$vectors$r)*0.15)
-p_FeGenie_SFO <- as.data.frame(A_FeGenie_SFO$pvals)
-vec_FeGenie_SFO <- cbind(vec_FeGenie_SFO, p_FeGenie_SFO)
-vec_FeGenie_SFO <- subset(vec_FeGenie_SFO, A_FeGenie_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_FeGenie_SFO$labels <- c("Ca", "pH")
-
-
-#Plot using ggplot2
-df6b <- as.data.frame(FeGenie_FIN_centroids_points_merged)
-
-plot6b <- ggplot(df6b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_FeGenie_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_FeGenie_FIN}%)")) + 
-  geom_segment(data=vec_FeGenie_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_FeGenie_SFO, aes(x=V1, y=V2+0.005), label=vec_FeGenie_SFO$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Fe Genes Week 8")
-
-plot6b
-```
-
-```{r 2 panel FeGenie total start/finish and finish}
-# extract legend that includes baseline:
-leg <- get_legend(plot2a, position = "right") #Extract legend as a legend Grob
-
-# panel and add legend grob
-FeGenieTotal_2panel <- ggarrange(plot6a, plot6b, ncol = 1, nrow = 2, labels = c("A", "B"), legend.grob = leg, legend = "right")
-
-FeGenieTotal_2panel
-
-#ggsave("../figures/Fe_S_manuscript/FeGenieTotal_2panel.png", plot = FeGenieTotal_2panel, device=NULL, path=NULL, scale=1, height = 10, width = 7, limitsize = TRUE, dpi = 600)
-```
 
 ```{r Fe reduction FeGenie: SSF}
 # Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
@@ -3132,156 +1341,6 @@ FeReduction_centroids_points_merged <- rbind(pcoa_FeReduction.cent.dataframe.trt
 
 # Add points data frame
 pcoa_FeReduction_DF <- as.data.frame(pcoa_FeReduction$points)
-```
-```{r Fe reduction FeGenie SSF envit and plot}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_FeReduction_SSF <- envfit(pcoa_FeReduction_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_FeReduction_SSF
-
-A_FeReduction_SSF <-as.list(fit_FeReduction_SSF$vectors)
-vec_FeReduction_SSF <- as.data.frame(fit_FeReduction_SSF$vectors$arrows*sqrt(fit_FeReduction_SSF$vectors$r)*0.15)
-p_FeReduction_SSF <- as.data.frame(A_FeReduction_SSF$pvals)
-vec_FeReduction_SSF <- cbind(vec_FeReduction_SSF, p_FeReduction_SSF)
-vec_FeReduction_SSF <- subset(vec_FeReduction_SSF, A_FeReduction_SSF$pvals<=0.05)
-
-# Add column with labels, for plotting:
-#vec_FeReduction_SSF$labels <- c(expression(paste("mg CH"[4],"-C m"^{-2})), "P", "Ca", "Cu")
-
-#Plot using ggplot2
-df7a <- as.data.frame(FeReduction_centroids_points_merged)
-
-plot7a <- ggplot(df7a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_FeReduction}%)")) + ylab(glue("PCoA 2 ({explainvar2_FeReduction}%)")) + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Fe Reduction Week 0 (Baseline) and Week 8")
-
-plot7a
-```
-
-```{r Fe reduction FeGenie: SFO}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_FeReduction_FINAL <- cmdscale(FeReductionBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_FeReduction_FIN <- round(pcoa_FeReduction_FINAL$eig[1] / sum(pcoa_FeReduction_FINAL$eig), 3) * 100
-explainvar2_FeReduction_FIN <- round(pcoa_FeReduction_FINAL$eig[2] / sum(pcoa_FeReduction_FINAL$eig), 3) * 100
-
-explainvar1_FeReduction_FIN # 25.1
-explainvar2_FeReduction_FIN # 21.8
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-FeReductionRA_FIN_design <- FeReductionRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_FeReduction_FIN.groups <- paste(FeReductionRA_FIN_design$Treat, FeReductionRA_FIN_design$Plant, FeReductionRA_FIN_design$Hist, sep = "_")
-pcoa_FeReduction_FIN.points <- data.frame(pcoa_FeReduction_FINAL$points, group = pcoa_FeReduction_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_FeReduction_FIN.L.centroids <- reshape2::melt(pcoa_FeReduction_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_FeReduction_FIN.centroids <- acast(pcoa_FeReduction_FIN.L.centroids, variable ~ group, mean)
-pcoa_FeReduction_FIN.centroids.se <- acast(pcoa_FeReduction_FIN.L.centroids, variable ~ group, se)
-pcoa_FeReduction_FIN.centroids.sd <- acast(pcoa_FeReduction_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_FeReduction_FIN.cent.dataframe <- cbind(t(pcoa_FeReduction_FIN.centroids), t(pcoa_FeReduction_FIN.centroids.se))
-colnames(pcoa_FeReduction_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_FeReduction_FIN.cent.dataframe.trts <- as.data.frame(pcoa_FeReduction_FIN.cent.dataframe) 
-pcoa_FeReduction_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_FeReduction_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_FeReduction_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_FeReduction_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_FeReduction_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_FeReduction_FIN.points_ForPlot <- pcoa_FeReduction_FIN.points
-colnames(pcoa_FeReduction_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_FeReduction_FIN.points_ForPlot$trt <- FeReductionRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_FeReduction_FIN.points_ForPlot$plant <- FeReductionRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_FeReduction_FIN.points_ForPlot$history <- FeReductionRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_FeReduction_FIN.points_ForPlot$history_plant <- c(paste(pcoa_FeReduction_FIN.points_ForPlot$history, pcoa_FeReduction_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_FeReduction_FIN.points_ForPlot <- pcoa_FeReduction_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_FeReduction_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_FeReduction_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_FeReduction_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-FeReduction_FIN_centroids_points_merged <- rbind(pcoa_FeReduction_FIN.cent.dataframe.trts, pcoa_FeReduction_FIN.points_ForPlot)
-
-# Add points data frame
-pcoa_FeReduction_FINAL_DF <- as.data.frame(pcoa_FeReduction_FINAL$points)
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_FeReduction_SFO <- envfit(pcoa_FeReduction_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_FeReduction_SFO
-
-A_FeReduction_SFO <-as.list(fit_FeReduction_SFO$vectors)
-vec_FeReduction_SFO <- as.data.frame(fit_FeReduction_SFO$vectors$arrows*sqrt(fit_FeReduction_SFO$vectors$r)*0.15) # adjusting to dodge points
-p_FeReduction_SFO <- as.data.frame(A_FeReduction_SFO$pvals)
-vec_FeReduction_SFO <- cbind(vec_FeReduction_SFO, p_FeReduction_SFO)
-vec_FeReduction_SFO <- subset(vec_FeReduction_SFO, A_FeReduction_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_FeReduction_SFO$labels <- c("%C", "%N", "P", "Ca", "Cu", "CEC")
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_FeReduction_SFO$X_nudge <- c(-0.01, 0.03, 0.007, 0.05, -0.04, 0.02)
-vec_FeReduction_SFO$Y_nudge <- c(0.02, 0.015, -0.01, -0.01, 0.03, -0.015)
- 
-
-#Plot using ggplot2
-df7b <- as.data.frame(FeReduction_FIN_centroids_points_merged)
-
-plot7b <- ggplot(df7b, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_FeReduction_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_FeReduction_FIN}%)")) + 
-  geom_segment(data=vec_FeReduction_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_FeReduction_SFO, aes(x=V1, y=V2), label=vec_FeReduction_SFO$labels, nudge_x = vec_FeReduction_SFO$X_nudge, nudge_y = vec_FeReduction_SFO$Y_nudge, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Fe Reduction Week 8")
-
-plot7b
 ```
 
 ```{r SO4 reduction combined: SSF}
@@ -3344,172 +1403,6 @@ SO4_red_combined_centroids_points_merged <- rbind(pcoa_SO4_red_combined.cent.dat
 # Add points data frame
 pcoa_SO4_red_combined_DF <- as.data.frame(pcoa_SO4_red_combined$points)
 ```
-```{r SO4 reduction combined SSF envit and plot}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_SO4_red_combined_SSF <- envfit(pcoa_SO4_red_combined_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_SO4_red_combined_SSF
-
-A_SO4_red_combined_SSF <-as.list(fit_SO4_red_combined_SSF$vectors)
-vec_SO4_red_combined_SSF <- as.data.frame(fit_SO4_red_combined_SSF$vectors$arrows*sqrt(fit_SO4_red_combined_SSF$vectors$r)*0.15)
-p_SO4_red_combined_SSF <- as.data.frame(A_SO4_red_combined_SSF$pvals)
-vec_SO4_red_combined_SSF <- cbind(vec_SO4_red_combined_SSF, p_SO4_red_combined_SSF)
-vec_SO4_red_combined_SSF <- subset(vec_SO4_red_combined_SSF, A_SO4_red_combined_SSF$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_SO4_red_combined_SSF$labels <- "%moisture"
-
-#Plot using ggplot2
-df7c <- as.data.frame(SO4_red_combined_centroids_points_merged)
-
-plot7c <- ggplot(df7c, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_SO4_red_combined}%)")) + ylab(glue("PCoA 2 ({explainvar2_SO4_red_combined}%)")) + 
-  geom_segment(data=vec_SO4_red_combined_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
- geom_text(data=vec_SO4_red_combined_SSF, aes(x=V1, y=V2-0.004), label=vec_SO4_red_combined_SSF$labels, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Sulfate Reduction Week 0 (Baseline) and Week 8")
-
-plot7c
-```
-
-```{r SO4 reduction combined total: SFO}
-# Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
-# eig=TRUE returns eigenvalues; k = # of dimensions to calculate
-pcoa_SO4_red_combined_FINAL <- cmdscale(SO4_red_combinedBC_finish, k=2, eig=TRUE, add=TRUE) # k = 2 because we only plot 2 dimensions, add=TRUE corrects highly negative eigenvalues
-
-
-explainvar1_SO4_red_combined_FIN <- round(pcoa_SO4_red_combined_FINAL$eig[1] / sum(pcoa_SO4_red_combined_FINAL$eig), 3) * 100
-explainvar2_SO4_red_combined_FIN <- round(pcoa_SO4_red_combined_FINAL$eig[2] / sum(pcoa_SO4_red_combined_FINAL$eig), 3) * 100
-
-explainvar1_SO4_red_combined_FIN # 36.7
-explainvar2_SO4_red_combined_FIN # 22.4
-
-# Filter 'pre' samples out of *RA_design to get final samples only
-SO4_red_combinedRA_FIN_design <- SO4_red_combinedRA_design %>% dplyr::filter(Treat != "_pre" & Plant != "_pre")
-
-pcoa_SO4_red_combined_FIN.groups <- paste(SO4_red_combinedRA_FIN_design$Treat, SO4_red_combinedRA_FIN_design$Plant, SO4_red_combinedRA_FIN_design$Hist, sep = "_")
-pcoa_SO4_red_combined_FIN.points <- data.frame(pcoa_SO4_red_combined_FINAL$points, group = pcoa_SO4_red_combined_FIN.groups)
-
-# Calculate Centroids (mean and SE)
-pcoa_SO4_red_combined_FIN.L.centroids <- reshape2::melt(pcoa_SO4_red_combined_FIN.points, id="group", measure.vars = c("X1", "X2"))
-pcoa_SO4_red_combined_FIN.centroids <- acast(pcoa_SO4_red_combined_FIN.L.centroids, variable ~ group, mean)
-pcoa_SO4_red_combined_FIN.centroids.se <- acast(pcoa_SO4_red_combined_FIN.L.centroids, variable ~ group, se)
-pcoa_SO4_red_combined_FIN.centroids.sd <- acast(pcoa_SO4_red_combined_FIN.L.centroids, variable ~ group, sd)
-
-# Combine
-pcoa_SO4_red_combined_FIN.cent.dataframe <- cbind(t(pcoa_SO4_red_combined_FIN.centroids), t(pcoa_SO4_red_combined_FIN.centroids.se))
-colnames(pcoa_SO4_red_combined_FIN.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-
-# Adding columns with the factors. (No need to run again if already in Global Environment)
-#trt_FIN <- c("Dry","Dry", "Dry","Dry","Wet","Wet", "Wet","Wet") 
-#plant_FIN <- c("No Plant","No Plant","Plant", "Plant", "No Plant","No Plant","Plant", "Plant")
-#history_FIN <- c("Dry", "Wet", "Dry", "Wet", "Dry", "Wet", "Dry", "Wet")
-#history_plant_combined_FIN <- c(paste(history_FIN, plant_FIN, sep = "_"))
-
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts <- as.data.frame(pcoa_SO4_red_combined_FIN.cent.dataframe) 
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts$trt <- as.factor(trt_FIN)
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts$plant <- as.factor(plant_FIN)
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts$history <- as.factor(history_FIN)
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts$history_plant<- as.factor(history_plant_combined_FIN)
-pcoa_SO4_red_combined_FIN.cent.dataframe.trts$centroid_or_sample <- "centroid"
-
-# Add in points to data frame:
-pcoa_SO4_red_combined_FIN.points_ForPlot <- pcoa_SO4_red_combined_FIN.points
-colnames(pcoa_SO4_red_combined_FIN.points_ForPlot) <- c("V1", "V2", "group")
-# Add labels to match ...cent.dataframe.trts
-pcoa_SO4_red_combined_FIN.points_ForPlot$trt <- SO4_red_combinedRA_FIN_design$Treat %>% str_replace_all(c("w" = "Wet", "_pre" = "Baseline", "d" = "Dry"))
-pcoa_SO4_red_combined_FIN.points_ForPlot$plant <- SO4_red_combinedRA_FIN_design$Plant %>% str_replace_all(c("n" = "No Plant", "y" = "Plant", "_pre" = "Baseline"))
-pcoa_SO4_red_combined_FIN.points_ForPlot$history <- SO4_red_combinedRA_FIN_design$Hist %>% str_replace_all(c("d" = "Dry", "w" = "Wet"))
-pcoa_SO4_red_combined_FIN.points_ForPlot$history_plant <- c(paste(pcoa_SO4_red_combined_FIN.points_ForPlot$history, pcoa_SO4_red_combined_FIN.points_ForPlot$plant, sep = "_"))
-#remove "group" column
-pcoa_SO4_red_combined_FIN.points_ForPlot <- pcoa_SO4_red_combined_FIN.points_ForPlot[, -3]
-#add V1e and V2e as zeros:
-pcoa_SO4_red_combined_FIN.points_ForPlot$V1e <- numeric(16)
-pcoa_SO4_red_combined_FIN.points_ForPlot$V2e <- numeric(16)
-# Add column to distinguish sample points from centroids, and later use to set alpha in plot
-pcoa_SO4_red_combined_FIN.points_ForPlot$centroid_or_sample <- "sample"
-
-#Merge:
-SO4_red_combined_FIN_centroids_points_merged <- rbind(pcoa_SO4_red_combined_FIN.cent.dataframe.trts, pcoa_SO4_red_combined_FIN.points_ForPlot)
-
-# Add points data frame (seems to be newer issue, used to be able to use $ on pcoa_denit_FINAL$points)
-pcoa_SO4_red_combined_FINAL_DF <- as.data.frame(pcoa_SO4_red_combined_FINAL$points)
-
-
-#Run envfit with new Soil data (SFO = Soil Finish Only):
-fit_SO4_red_combined_SFO <- envfit(pcoa_SO4_red_combined_FINAL_DF, envfit_FINISH_numerical, permutations = 10000, set.seed(42))
-fit_SO4_red_combined_SFO
-
-A_SO4_red_combined_SFO <-as.list(fit_SO4_red_combined_SFO$vectors)
-vec_SO4_red_combined_SFO <- as.data.frame(fit_SO4_red_combined_SFO$vectors$arrows*sqrt(fit_SO4_red_combined_SFO$vectors$r)*0.15)
-p_SO4_red_combined_SFO <- as.data.frame(A_SO4_red_combined_SFO$pvals)
-vec_SO4_red_combined_SFO <- cbind(vec_SO4_red_combined_SFO, p_SO4_red_combined_SFO)
-vec_SO4_red_combined_SFO <- subset(vec_SO4_red_combined_SFO, A_SO4_red_combined_SFO$pvals<=0.05)
-
-# Add column with labels, for plotting:
-vec_SO4_red_combined_SFO$labels <- c("%C", "Mg", "Ca", "S", "Zn", "Mn", "Cu", "CEC")
-
-# Add a column with nudges for nudge_x and nudge_y:
-vec_SO4_red_combined_SFO$X_nudge <- c(0, -0.005, 0, 0.005, 0, -0.005, 0.005, 0)
-vec_SO4_red_combined_SFO$Y_nudge <- c(0.007, 0, 0.007, 0, 0.005, 0, 0, -0.005)
-
-
-#Plot using ggplot2
-df7d <- as.data.frame(SO4_red_combined_FIN_centroids_points_merged)
-
-plot7d <- ggplot(df7d, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(0, 15, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1_SO4_red_combined_FIN}%)")) + ylab(glue("PCoA 2 ({explainvar2_SO4_red_combined_FIN}%)")) + 
-  geom_segment(data=vec_SO4_red_combined_SFO, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+ 
-  geom_text(data=vec_SO4_red_combined_SFO, aes(x=V1, y=V2), label=vec_SO4_red_combined_SFO$labels, nudge_x = vec_SO4_red_combined_SFO$X_nudge, nudge_y = vec_SO4_red_combined_SFO$Y_nudge, size=4, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14), legend.position = "none")+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Sulfate Reduction Week 8")
-
-plot7d
-```
-
-```{r four panel Fe and SO4 reduction}
-# use same 'leg' for legend grob
-
-# panel and add legend grob
-FeRed_SO4Red_4panel <- ggarrange(plot7a, plot7b, plot7c, plot7d, ncol = 2, nrow = 2, labels = c("A", "B", "C", "D"), legend.grob = leg, legend = "right", align = "hv")
-
-FeRed_SO4Red_4panel
-
-#ggsave("../figures/Fe_S_manuscript/FeRed_SO4Red_4panel.png", plot = FeRed_SO4Red_4panel, device=NULL, path=NULL, scale=1, height = 7, width = 13, limitsize = TRUE, dpi = 600)
-
-#ggsave("../figures/Fe_S_manuscript/Figure4.tiff", plot = FeRed_SO4Red_4panel, device="tiff", path=NULL, scale=1, height = 7, width = 13, limitsize = TRUE, dpi = 600, bg = "white")
-```
 
 ```{r PCOA: Methane Oxidation}
 # Classical (Metric) Multidimensional Scaling; returns PCoA coordinates
@@ -3569,48 +1462,6 @@ CH4_ox_centroids_points_merged <- rbind(pcoa_CH4_ox2.cent.dataframe.trts, pcoa_C
 
 # Add points data frame
 pcoa_CH4_ox_DF <- as.data.frame(pcoa_CH4_ox$points)
-```
-
-```{r CH4_ox envfit and PCoA}
-#Run envfit with new Soil data (SSF = Soil Start & Finish):
-fit_CH4_ox_SSF <- envfit(pcoa_CH4_ox_DF, SoilGHG_StartFinish_Envfit, permutations = 10000, set.seed(42))
-fit_CH4_ox_SSF
-
-A_CH4_ox_SSF <-as.list(fit_CH4_ox_SSF$vectors)
-vec_CH4_ox_SSF <- as.data.frame(fit_CH4_ox_SSF$vectors$arrows*sqrt(fit_CH4_ox_SSF$vectors$r)*0.15)
-p_CH4_ox_SSF <- as.data.frame(A_CH4_ox_SSF$pvals)
-vec_CH4_ox_SSF <- cbind(vec_CH4_ox_SSF, p_CH4_ox_SSF)
-vec_CH4_ox_SSF <- subset(vec_CH4_ox_SSF, A_CH4_ox_SSF$pvals<=0.05)
-
-
-
-#Plot using ggplot2
-df8a <- as.data.frame(CH4_ox_centroids_points_merged)
-
-plot8a <- ggplot(df8a, aes(x=V1, y=V2, shape=history_plant, colour=trt)) + geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.003), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.003), colour="black") +   
-  geom_point(aes(shape = history_plant, colour=trt, alpha = centroid_or_sample, size = centroid_or_sample), stroke=2) +  
-  theme_bw() +
-  scale_size_manual(values = c(6, 3), name = "Centroid or Sample")+
-  scale_alpha_manual(values = c(1, 0.3), name = "Centroid or Sample")+
-  scale_color_manual(values=c("black", "#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(7, 0, 15, 13, 1, 19), name="History_Plant") +
-  xlab(glue("PCoA 1 ({explainvar1b_CH4_ox}%)")) + ylab(glue("PCoA 2 ({explainvar2b_CH4_ox}%)")) + 
-  geom_segment(data=vec_CH4_ox_SSF, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4, inherit.aes=F)+ 
- geom_text(data=vec_CH4_ox_SSF, aes(x=V1, y=V2), label= vec_CH4_ox_SSF$vec_labels, size=4, nudge_x = vec_CH4_ox_SSF$X_nudge, nudge_y = vec_CH4_ox_SSF$Y_nudge, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Methane Oxidation")
-
-plot8a
 ```
 
 ```{r DBPLSR barplots 2}
@@ -4395,7 +2246,6 @@ MantelHeatHydro_ALL
 
 #ggsave("../figures/Fe_S_manuscript/MantelHeatHydro.png", plot=MantelHeatHydro_ALL, device="png", path=NULL, scale=1, width=13, height=9, dpi=600, limitsize=TRUE ,bg="white")
 ```
-
 
 ```{r Plotting BC correlation}
 # These plots were made in https://www.youtube.com/watch?v=EXNOgmUyPfY, but are not required to run Mantel Test
