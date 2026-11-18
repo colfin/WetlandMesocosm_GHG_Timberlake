@@ -914,10 +914,11 @@ kpls1_predict <- function(K, Kn, y, ncomp) {
 Gnew_from_D2 <- function(D2train, d2new)
   -0.5 * (sweep(d2new, 2, rowMeans(D2train)) - rowMeans(d2new) + mean(D2train))
 
-D2_full <- as.matrix(Dissim_SO4_redBC)^2
-y_all   <- GHG_metaG$f0_CH4
+# Mesocosm-level (N = 8) pooled distances, matching the per-mesocosm cumulative flux
+D2_full <- as.matrix(pooled$Dissim_SO4_red$BC)^2
+y_all   <- GHG_Cumulative[rownames(D2_full), "f0_CH4"]
 block   <- substr(rownames(D2_full), 1, 2)
-K_max   <- 8
+K_max   <- 4
 
 cv_pred   <- matrix(NA_real_, length(y_all), K_max)
 null_pred <- numeric(length(y_all))
@@ -957,14 +958,10 @@ Hist x Treat interactions not significant, so using additive model
 set.seed(4817)
 
 # PERMANOVA on pooled N=8 mesocosm matrix; free permutations
-permanova_model_meth <- adonis2(
-  methBC_pooled ~ Hist + Treat,
-  data = methRA_pooled_design,
-  permutations = 9999,
-  by = "margin"
-)
-
-permanova_model_meth
+adonis_pooled_additive <- lapply(pooled, function(x) {
+  adonis2(x$BC ~ Hist + Treat, data = x$design, permutations = 9999, by = "margin")
+})
+adonis_pooled_additive
 ```
 
 ## PCoA
@@ -1043,8 +1040,8 @@ ggarrange(plotlist = lapply(names(pooled), \(g) plot_pooled_pcoa(g, "Cumulative"
           ncol = 2, nrow = 4, common.legend = TRUE, legend = "right")
 ```
 
-DSR, FeR, ThioSox, FeOx (and meth just to see)
-```{r}
+DSR, FeR, FeOx (and meth just to see)
+```{r DSR PCoA}
 pcoa_DSR_pts <- data.frame(pooled$Dissim_SO4_red$pcoa$points[, 1:2], pooled$Dissim_SO4_red$design) |>
   mutate(History = factor(recode(Hist, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")),
          Treatment = factor(recode(Treat, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")))
@@ -1056,6 +1053,7 @@ pcoa_DSR_pct <- round(100 * pcoa_DSR_eig[1:2] / sum(pcoa_DSR_eig), 1)
 pcoa_DSR_fit <- fits$Dissim_SO4_red$Cumulative
 vec_Dissim_SO4_red_cum <- as.data.frame(pcoa_DSR_fit$vectors$arrows * sqrt(pcoa_DSR_fit$vectors$r))
 names(vec_Dissim_SO4_red_cum) <- c("V1", "V2")
+
 # Plotmath strings (parsed in geom_text) to allow the CH4 subscript
 vec_Dissim_SO4_red_cum$labels <- recode(rownames(vec_Dissim_SO4_red_cum),
                                         P.ppm = "P~(ppm)",
@@ -1064,30 +1062,127 @@ vec_Dissim_SO4_red_cum <- vec_Dissim_SO4_red_cum[pcoa_DSR_fit$vectors$pvals <= 0
 vec_scale <- 0.8 * max(abs(pcoa_DSR_pts[, c("X1", "X2")])) / max(abs(vec_Dissim_SO4_red_cum[, c("V1", "V2")]))
 vec_Dissim_SO4_red_cum[, c("V1", "V2")] <- vec_Dissim_SO4_red_cum[, c("V1", "V2")] * vec_scale
 
-pcoa_DSR <- ggplot(pcoa_DSR_pts, aes(x=X1, y=X2, shape=History, colour=Treatment)) +
-  geom_point(size = 4, stroke=2) +
+# ordisurf of cumulative S (ppm); n = 8, so fixed-df (fx) thin-plate spline with minimal basis
+pcoa_DSR_xy <- as.matrix(pcoa_DSR_pts[, c("X1", "X2")])
+S_ppm <- env_list$Cumulative[rownames(pcoa_DSR_xy), "S.ppm"]
+pcoa_DSR_surf <- vegan::ordisurf(pcoa_DSR_xy ~ S_ppm, knots = 3, fx = TRUE, plot = FALSE)
+surf_grid <- with(pcoa_DSR_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid$z <- as.vector(pcoa_DSR_surf$grid$z)
+
+# plot
+pcoa_DSR <- ggplot(pcoa_DSR_pts, aes(x = X1, y = X2, shape = History, colour = Treatment)) +
+  geom_contour(
+    data = na.omit(surf_grid), aes(x = X1, y = X2, z = z),
+    colour = "grey50", linewidth = 0.5, inherit.aes = FALSE
+  ) +
+  geom_point(size = 4, stroke = 2) +
+  geom_segment(
+    data = vec_Dissim_SO4_red_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
+    linewidth = 1, arrow = arrow(length = unit(0.2, "cm")),
+    colour = "black", alpha = 0.4, inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = vec_Dissim_SO4_red_cum, aes(x = V1, y = V2, label = labels),
+    size = 4, vjust = 1, parse = TRUE, inherit.aes = FALSE
+  ) +
+  scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
+  scale_shape_manual(values = c(15, 19), name = "History") +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4), order = 1),
+    colour = guide_legend(override.aes = list(pch = 16, size = 4), order = 2)
+  ) +
+  labs(
+    x = glue("PCoA 1 ({pcoa_DSR_pct[1]}%)"),
+    y = glue("PCoA 2 ({pcoa_DSR_pct[2]}%)"),
+    title = "Dissimilatory Sulfate Reduction"
+  ) +
   theme_bw() +
-  scale_color_manual(values=c("#997700", "#004488"), name="Treatment") +
-  scale_shape_manual(values = c(15, 19), name="History") +
-  xlab(glue("PCoA 1 ({pcoa_DSR_pct[1]}%)")) + ylab(glue("PCoA 2 ({pcoa_DSR_pct[2]}%)")) +
-  geom_segment(data=vec_Dissim_SO4_red_cum, aes(x=0,xend=V1,y=0,yend=V2), linewidth=1, arrow = arrow(length = unit(0.2, "cm")),colour="black", alpha = 0.4,inherit.aes=F)+
-  geom_text(data=vec_Dissim_SO4_red_cum, aes(x=V1, y=V2, label=labels), size=4, vjust=1, parse=TRUE, inherit.aes=F)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(panel.background = element_blank()) + 
-  theme(axis.title = element_text(size=14), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14),  axis.text.y = element_text(size=14),
-          panel.border = element_rect(colour = "black", linewidth=1.25)) +
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  theme(plot.title=element_text(size=14)) +
-  theme(legend.text=element_text(size=14), legend.title = element_text(size=14))+
-  guides(shape = guide_legend(override.aes = list(size = 4), order = 1), 
-           colour = guide_legend(override.aes = list(pch=16, size = 4), order = 2)) +
-    ggtitle("Dissimilatory Sulfate Reduction")
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1.25),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    axis.ticks.length = unit(0.3, "cm"),
+    plot.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
 
 pcoa_DSR
 ```
 
+```{r FeR PCoA}
+pcoa_FeR_pts <- data.frame(pooled$FeReduction$pcoa$points[, 1:2], pooled$FeReduction$design) |>
+  mutate(History = factor(recode(Hist, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")),
+         Treatment = factor(recode(Treat, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")))
 
+pcoa_FeR_eig <- pooled$FeReduction$pcoa$eig
+pcoa_FeR_pct <- round(100 * pcoa_FeR_eig[1:2] / sum(pcoa_FeR_eig), 1)
+
+# Significant Cumulative envfit vectors, scaled by sqrt(r2) then rescaled to the point cloud
+pcoa_FeR_fit <- fits$FeReduction$Cumulative
+vec_FeReduction_cum <- as.data.frame(pcoa_FeR_fit$vectors$arrows * sqrt(pcoa_FeR_fit$vectors$r))
+names(vec_FeReduction_cum) <- c("V1", "V2")
+
+# Filter for significant envfits
+vec_FeReduction_cum <- vec_FeReduction_cum[pcoa_FeR_fit$vectors$pvals <= 0.05, ]
+
+# Plotmath strings (parsed in geom_text) to allow the CH4 subscript
+vec_FeReduction_cum$labels <- recode(rownames(vec_FeReduction_cum),
+                                        Cu.ppm = "Cu~(ppm)",
+                                        CEC = "CEC",
+                                        f0_CH4_cum = "CH[4]~flux~(cumulative)")
+vec_scale <- 0.8 * max(abs(pcoa_FeR_pts[, c("X1", "X2")])) / max(abs(vec_FeReduction_cum[, c("V1", "V2")]))
+vec_FeReduction_cum[, c("V1", "V2")] <- vec_FeReduction_cum[, c("V1", "V2")] * vec_scale
+
+# ordisurf of cumulative Fe (ppm); n = 8, so fixed-df (fx) thin-plate spline with minimal basis
+pcoa_FeR_xy <- as.matrix(pcoa_FeR_pts[, c("X1", "X2")])
+Fe_ppm <- env_list$Cumulative[rownames(pcoa_FeR_xy), "Fe.ppm"]
+pcoa_FeR_surf <- vegan::ordisurf(pcoa_FeR_xy ~ Fe_ppm, knots = 3, fx = TRUE, plot = FALSE)
+surf_grid <- with(pcoa_FeR_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid$z <- as.vector(pcoa_FeR_surf$grid$z)
+
+# plot
+pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2, shape = History, colour = Treatment)) +
+  geom_contour(
+    data = na.omit(surf_grid), aes(x = X1, y = X2, z = z),
+    colour = "grey50", linewidth = 0.5, inherit.aes = FALSE
+  ) +
+  geom_point(size = 4, stroke = 2) +
+  geom_segment(
+    data = vec_FeReduction_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
+    linewidth = 1, arrow = arrow(length = unit(0.2, "cm")),
+    colour = "black", alpha = 0.4, inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = vec_FeReduction_cum, aes(x = V1, y = V2, label = labels),
+    size = 4, vjust = 1, parse = TRUE, inherit.aes = FALSE
+  ) +
+  scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
+  scale_shape_manual(values = c(15, 19), name = "History") +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4), order = 1),
+    colour = guide_legend(override.aes = list(pch = 16, size = 4), order = 2)
+  ) +
+  labs(
+    x = glue("PCoA 1 ({pcoa_FeR_pct[1]}%)"),
+    y = glue("PCoA 2 ({pcoa_FeR_pct[2]}%)"),
+    title = "Iron Reduction"
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1.25),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    axis.ticks.length = unit(0.3, "cm"),
+    plot.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
+
+pcoa_FeR
+```
 
 
 ### Mantel tests
