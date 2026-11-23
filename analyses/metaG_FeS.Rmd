@@ -24,7 +24,7 @@ ci <- function(x, ...){1.96 * sd(x,na.rm = TRUE)}
 
 # Code dependencies:
 require("vegan"); require("reshape"); require("ggplot2"): require("tidyr"); require("dplyr"); require("dbstats"); require("reshape2"); require("ggpubr"); require("glue"); require("tidyverse"); require("gasfluxes"); require("lme4");
-require("lmerTest"); require("funrar")
+require("lmerTest"); require("funrar"); require("ggnewscale")
 ```
 
 # Load files
@@ -1071,10 +1071,6 @@ surf_grid$z <- as.vector(pcoa_DSR_surf$grid$z)
 
 # plot
 pcoa_DSR <- ggplot(pcoa_DSR_pts, aes(x = X1, y = X2, shape = History, colour = Treatment)) +
-  geom_contour(
-    data = na.omit(surf_grid), aes(x = X1, y = X2, z = z),
-    colour = "grey50", linewidth = 0.5, inherit.aes = FALSE
-  ) +
   geom_point(size = 4, stroke = 2) +
   geom_segment(
     data = vec_Dissim_SO4_red_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
@@ -1135,20 +1131,27 @@ vec_FeReduction_cum$labels <- recode(rownames(vec_FeReduction_cum),
 vec_scale <- 0.8 * max(abs(pcoa_FeR_pts[, c("X1", "X2")])) / max(abs(vec_FeReduction_cum[, c("V1", "V2")]))
 vec_FeReduction_cum[, c("V1", "V2")] <- vec_FeReduction_cum[, c("V1", "V2")] * vec_scale
 
-# ordisurf of cumulative Fe (ppm); n = 8, so fixed-df (fx) thin-plate spline with minimal basis
+# ordisurf of cumulative methane flux; n = 8, so fixed-df (fx) thin-plate spline with minimal basis
 pcoa_FeR_xy <- as.matrix(pcoa_FeR_pts[, c("X1", "X2")])
-Fe_ppm <- env_list$Cumulative[rownames(pcoa_FeR_xy), "Fe.ppm"]
-pcoa_FeR_surf <- vegan::ordisurf(pcoa_FeR_xy ~ Fe_ppm, knots = 3, fx = TRUE, plot = FALSE)
-surf_grid <- with(pcoa_FeR_surf$grid, expand.grid(X1 = x, X2 = y))
-surf_grid$z <- as.vector(pcoa_FeR_surf$grid$z)
+f0_CH4_cum <- env_list$Cumulative[rownames(pcoa_FeR_xy), "f0_CH4_cum"]
+
+pcoa_FeR_CH4_surf <- vegan::ordisurf(pcoa_FeR_xy ~ f0_CH4_cum, knots = 3, fx = TRUE, plot = FALSE)
+summary(pcoa_FeR_CH4_surf)
+
+surf_grid_FeR_CH4 <- with(pcoa_FeR_CH4_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid_FeR_CH4$z <- as.vector(pcoa_FeR_CH4_surf$grid$z)
+
 
 # plot
-pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2, shape = History, colour = Treatment)) +
+pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2)) +
   geom_contour(
-    data = na.omit(surf_grid), aes(x = X1, y = X2, z = z),
-    colour = "grey50", linewidth = 0.5, inherit.aes = FALSE
+    data = na.omit(surf_grid_FeR_CH4), aes(x = X1, y = X2, z = z, colour = after_stat(level)),
+    linewidth = 0.5, inherit.aes = FALSE
   ) +
-  geom_point(size = 4, stroke = 2) +
+  scale_colour_viridis_c(name = expression(CH[4]~flux~(cumulative))) +
+  # Separate colour scale for the Treatment points
+  ggnewscale::new_scale_colour() +
+  geom_point(aes(shape = History, colour = Treatment), size = 4, stroke = 2) +
   geom_segment(
     data = vec_FeReduction_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
     linewidth = 1, arrow = arrow(length = unit(0.2, "cm")),
@@ -1182,6 +1185,86 @@ pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2, shape = History, colour = T
   )
 
 pcoa_FeR
+```
+
+```{r meth PCoA}
+pcoa_meth_pts <- data.frame(pooled$meth$pcoa$points[, 1:2], pooled$meth$design) |>
+  mutate(History = factor(recode(Hist, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")),
+         Treatment = factor(recode(Treat, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")))
+
+pcoa_meth_eig <- pooled$meth$pcoa$eig
+pcoa_meth_pct <- round(100 * pcoa_meth_eig[1:2] / sum(pcoa_meth_eig), 1)
+
+# Significant Cumulative envfit vectors, scaled by sqrt(r2) then rescaled to the point cloud
+pcoa_meth_fit <- fits$meth$Cumulative
+vec_meth_cum <- as.data.frame(pcoa_meth_fit$vectors$arrows * sqrt(pcoa_meth_fit$vectors$r))
+names(vec_meth_cum) <- c("V1", "V2")
+
+# Filter for significant envfits
+vec_meth_cum <- vec_meth_cum[pcoa_meth_fit$vectors$pvals <= 0.05, ]
+
+# Plotmath strings (parsed in geom_text) to allow the CH4 subscript
+vec_meth_cum$labels <- recode(rownames(vec_meth_cum),
+                                        Cu.ppm = "Cu~(ppm)",
+                                        CEC = "CEC",
+                                        f0_CH4_cum = "CH[4]~flux~(cumulative)")
+vec_scale <- 0.8 * max(abs(pcoa_meth_pts[, c("X1", "X2")])) / max(abs(vec_meth_cum[, c("V1", "V2")]))
+vec_meth_cum[, c("V1", "V2")] <- vec_meth_cum[, c("V1", "V2")] * vec_scale
+
+# ordisurf of cumulative methane flux; n = 8, so fixed-df (fx) thin-plate spline with minimal basis
+pcoa_meth_xy <- as.matrix(pcoa_meth_pts[, c("X1", "X2")])
+f0_CH4_cum <- env_list$Cumulative[rownames(pcoa_meth_xy), "f0_CH4_cum"]
+
+pcoa_meth_CH4_surf <- vegan::ordisurf(pcoa_meth_xy ~ f0_CH4_cum, knots = 3, fx = TRUE, plot = FALSE)
+summary(pcoa_meth_CH4_surf)
+
+surf_grid_meth_CH4 <- with(pcoa_meth_CH4_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid_meth_CH4$z <- as.vector(pcoa_meth_CH4_surf$grid$z)
+
+
+# plot
+pcoa_meth <- ggplot(pcoa_meth_pts, aes(x = X1, y = X2)) +
+  geom_contour(
+    data = na.omit(surf_grid_meth_CH4), aes(x = X1, y = X2, z = z, colour = after_stat(level)),
+    linewidth = 0.5, inherit.aes = FALSE
+  ) +
+  scale_colour_viridis_c(name = expression(CH[4]~flux~(cumulative))) +
+  # Separate colour scale for the Treatment points
+  ggnewscale::new_scale_colour() +
+  geom_point(aes(shape = History, colour = Treatment), size = 4, stroke = 2) +
+  geom_segment(
+    data = vec_meth_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
+    linewidth = 1, arrow = arrow(length = unit(0.2, "cm")),
+    colour = "black", alpha = 0.4, inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = vec_meth_cum, aes(x = V1, y = V2, label = labels),
+    size = 4, vjust = 1, parse = TRUE, inherit.aes = FALSE
+  ) +
+  scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
+  scale_shape_manual(values = c(15, 19), name = "History") +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4), order = 1),
+    colour = guide_legend(override.aes = list(pch = 16, size = 4), order = 2)
+  ) +
+  labs(
+    x = glue("PCoA 1 ({pcoa_meth_pct[1]}%)"),
+    y = glue("PCoA 2 ({pcoa_meth_pct[2]}%)"),
+    title = "Iron Reduction"
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1.25),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    axis.ticks.length = unit(0.3, "cm"),
+    plot.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
+
+pcoa_meth
 ```
 
 

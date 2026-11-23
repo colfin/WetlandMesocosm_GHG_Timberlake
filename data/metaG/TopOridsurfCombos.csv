@@ -1,0 +1,7 @@
+﻿PCoA,Variable,p,Adj. R²
+FeGenie,Zn.ppm,0.001,0.95
+meth,P.ppm,0.003,0.93
+ThioSOX,pH,0.007,0.89
+FeReduction,Cu.ppm,0.017,0.83
+FeReduction,f0_CH4_cum,0.020,0.82
+ThioSOX,S.ppm,0.023,0.80
