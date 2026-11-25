@@ -24,7 +24,7 @@ ci <- function(x, ...){1.96 * sd(x,na.rm = TRUE)}
 
 # Code dependencies:
 require("vegan"); require("reshape"); require("ggplot2"): require("tidyr"); require("dplyr"); require("dbstats"); require("reshape2"); require("ggpubr"); require("glue"); require("tidyverse"); require("gasfluxes"); require("lme4");
-require("lmerTest"); require("funrar"); require("ggnewscale")
+require("lmerTest"); require("funrar"); require("ggnewscale"); require("emmeans")
 ```
 
 # Load files
@@ -833,7 +833,7 @@ GHG_T5 <- GHG_pooled |>
 # 3. Cumulative flux over T1-T5 (trapezoid on actual days elapsed), row-named by mesocosm_ID
 GHG_Cumulative <- GHG_pooled |>
   group_by(mesocosm_ID) |>
-  summarise(across(c(f0_CH4, f0_CO2, f0_N2O), \(y) trapz(day, y)), .groups = "drop") |>
+  summarise(across(c(f0_CH4, f0_CO2, f0_N2O), \(y) trapz(day * 24, y)), .groups = "drop") |>
   tibble::column_to_rownames("mesocosm_ID")
 
 # Rows must match the pooled ordination order
@@ -1053,12 +1053,12 @@ pcoa_DSR_pct <- round(100 * pcoa_DSR_eig[1:2] / sum(pcoa_DSR_eig), 1)
 pcoa_DSR_fit <- fits$Dissim_SO4_red$Cumulative
 vec_Dissim_SO4_red_cum <- as.data.frame(pcoa_DSR_fit$vectors$arrows * sqrt(pcoa_DSR_fit$vectors$r))
 names(vec_Dissim_SO4_red_cum) <- c("V1", "V2")
+vec_Dissim_SO4_red_cum <- vec_Dissim_SO4_red_cum[pcoa_DSR_fit$vectors$pvals <= 0.05, ]
 
 # Plotmath strings (parsed in geom_text) to allow the CH4 subscript
 vec_Dissim_SO4_red_cum$labels <- recode(rownames(vec_Dissim_SO4_red_cum),
                                         P.ppm = "P~(ppm)",
                                         f0_CH4_cum = "CH[4]~flux~(cumulative)")
-vec_Dissim_SO4_red_cum <- vec_Dissim_SO4_red_cum[pcoa_DSR_fit$vectors$pvals <= 0.05, ]
 vec_scale <- 0.8 * max(abs(pcoa_DSR_pts[, c("X1", "X2")])) / max(abs(vec_Dissim_SO4_red_cum[, c("V1", "V2")]))
 vec_Dissim_SO4_red_cum[, c("V1", "V2")] <- vec_Dissim_SO4_red_cum[, c("V1", "V2")] * vec_scale
 
@@ -1148,7 +1148,7 @@ pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2)) +
     data = na.omit(surf_grid_FeR_CH4), aes(x = X1, y = X2, z = z, colour = after_stat(level)),
     linewidth = 0.5, inherit.aes = FALSE
   ) +
-  scale_colour_viridis_c(name = expression(CH[4]~flux~(cumulative))) +
+  scale_colour_viridis_c(name = expression(atop(CH[4]~flux~(cumulative), scriptstyle(mg~CH[4]~m^-2)))) +
   # Separate colour scale for the Treatment points
   ggnewscale::new_scale_colour() +
   geom_point(aes(shape = History, colour = Treatment), size = 4, stroke = 2) +
@@ -1159,7 +1159,7 @@ pcoa_FeR <- ggplot(pcoa_FeR_pts, aes(x = X1, y = X2)) +
   ) +
   geom_text(
     data = vec_FeReduction_cum, aes(x = V1, y = V2, label = labels),
-    size = 4, vjust = 1, parse = TRUE, inherit.aes = FALSE
+    size = 4, vjust = 1.5, parse = TRUE, inherit.aes = FALSE
   ) +
   scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
   scale_shape_manual(values = c(15, 19), name = "History") +
@@ -1205,31 +1205,42 @@ vec_meth_cum <- vec_meth_cum[pcoa_meth_fit$vectors$pvals <= 0.05, ]
 
 # Plotmath strings (parsed in geom_text) to allow the CH4 subscript
 vec_meth_cum$labels <- recode(rownames(vec_meth_cum),
+                                        c.percent = "'%'~C",
+                                        P.ppm = "P~(ppm)",
+                                        Zn.ppm = "Zn~(ppm)",
                                         Cu.ppm = "Cu~(ppm)",
                                         CEC = "CEC",
                                         f0_CH4_cum = "CH[4]~flux~(cumulative)")
 vec_scale <- 0.8 * max(abs(pcoa_meth_pts[, c("X1", "X2")])) / max(abs(vec_meth_cum[, c("V1", "V2")]))
 vec_meth_cum[, c("V1", "V2")] <- vec_meth_cum[, c("V1", "V2")] * vec_scale
 
+# Nudge Cu up and CH4 down (5% of the y-range) since their arrow tips nearly coincide
+y_nudge <- 0.05 * diff(range(pcoa_meth_pts$X2))
+vec_meth_cum$label_y <- vec_meth_cum$V2 +
+  ifelse(rownames(vec_meth_cum) == "Cu.ppm", y_nudge,
+         ifelse(rownames(vec_meth_cum) == "f0_CH4_cum", -y_nudge, 0))
+# Place CEC label to the right of its arrow tip so it doesn't collide with "% C"
+vec_meth_cum$label_hjust <- ifelse(rownames(vec_meth_cum) == "CEC", -0.15, 1.15)
+
 # ordisurf of cumulative methane flux; n = 8, so fixed-df (fx) thin-plate spline with minimal basis
 pcoa_meth_xy <- as.matrix(pcoa_meth_pts[, c("X1", "X2")])
-f0_CH4_cum <- env_list$Cumulative[rownames(pcoa_meth_xy), "f0_CH4_cum"]
+P.ppm <- env_list$Cumulative[rownames(pcoa_meth_xy), "P.ppm"]
 
-pcoa_meth_CH4_surf <- vegan::ordisurf(pcoa_meth_xy ~ f0_CH4_cum, knots = 3, fx = TRUE, plot = FALSE)
-summary(pcoa_meth_CH4_surf)
+pcoa_meth_surf <- vegan::ordisurf(pcoa_meth_xy ~ P.ppm, knots = 3, fx = TRUE, plot = FALSE)
+summary(pcoa_meth_surf)
 
-surf_grid_meth_CH4 <- with(pcoa_meth_CH4_surf$grid, expand.grid(X1 = x, X2 = y))
-surf_grid_meth_CH4$z <- as.vector(pcoa_meth_CH4_surf$grid$z)
+surf_grid_CH4 <- with(pcoa_meth_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid_CH4$z <- as.vector(pcoa_meth_surf$grid$z)
 
 
 # plot
 pcoa_meth <- ggplot(pcoa_meth_pts, aes(x = X1, y = X2)) +
   geom_contour(
-    data = na.omit(surf_grid_meth_CH4), aes(x = X1, y = X2, z = z, colour = after_stat(level)),
+    data = na.omit(surf_grid_CH4), aes(x = X1, y = X2, z = z, colour = after_stat(level)),
     linewidth = 0.5, inherit.aes = FALSE
   ) +
-  scale_colour_viridis_c(name = expression(CH[4]~flux~(cumulative))) +
-  # Separate colour scale for the Treatment points
+  scale_colour_viridis_c(name = expression(P~(ppm))) +
+  # Separate color scale for the Treatment points
   ggnewscale::new_scale_colour() +
   geom_point(aes(shape = History, colour = Treatment), size = 4, stroke = 2) +
   geom_segment(
@@ -1238,9 +1249,11 @@ pcoa_meth <- ggplot(pcoa_meth_pts, aes(x = X1, y = X2)) +
     colour = "black", alpha = 0.4, inherit.aes = FALSE
   ) +
   geom_text(
-    data = vec_meth_cum, aes(x = V1, y = V2, label = labels),
-    size = 4, vjust = 1, parse = TRUE, inherit.aes = FALSE
+    data = vec_meth_cum, aes(x = V1, y = label_y, label = labels, hjust = label_hjust),
+    size = 4, parse = TRUE, inherit.aes = FALSE
   ) +
+  # Extra room on the left so vector labels aren't clipped
+  scale_x_continuous(expand = expansion(mult = c(0.25, 0.05))) +
   scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
   scale_shape_manual(values = c(15, 19), name = "History") +
   guides(
@@ -1250,7 +1263,7 @@ pcoa_meth <- ggplot(pcoa_meth_pts, aes(x = X1, y = X2)) +
   labs(
     x = glue("PCoA 1 ({pcoa_meth_pct[1]}%)"),
     y = glue("PCoA 2 ({pcoa_meth_pct[2]}%)"),
-    title = "Iron Reduction"
+    title = "Methanogenesis"
   ) +
   theme_bw() +
   theme(
@@ -1267,45 +1280,85 @@ pcoa_meth <- ggplot(pcoa_meth_pts, aes(x = X1, y = X2)) +
 pcoa_meth
 ```
 
+```{r FeOx PCoA}
+pcoa_FeOx_pts <- data.frame(pooled$FeOxidation$pcoa$points[, 1:2], pooled$FeOxidation$design) |>
+  mutate(History = factor(recode(Hist, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")),
+         Treatment = factor(recode(Treat, d = "Dry", w = "Wet"), levels = c("Dry", "Wet")))
+
+pcoa_FeOx_eig <- pooled$FeOxidation$pcoa$eig
+pcoa_FeOx_pct <- round(100 * pcoa_FeOx_eig[1:2] / sum(pcoa_FeOx_eig), 1)
+
+# Significant Cumulative envfit vectors, scaled by sqrt(r2) then rescaled to the point cloud
+pcoa_FeOx_fit <- fits$FeOxidation$Cumulative
+vec_FeOxidation_cum <- as.data.frame(pcoa_FeOx_fit$vectors$arrows * sqrt(pcoa_FeOx_fit$vectors$r))
+names(vec_FeOxidation_cum) <- c("V1", "V2")
+vec_FeOxidation_cum <- vec_FeOxidation_cum[pcoa_FeOx_fit$vectors$pvals <= 0.05, ]
+
+# Plotmath strings (parsed in geom_text) to allow the CH4 subscript
+vec_FeOxidation_cum$labels <- recode(rownames(vec_FeOxidation_cum),
+                                        Ca.ppm = "Ca~(ppm)",
+                                        CEC = "CEC",
+                                        f0_CH4_cum = "CH[4]~flux~(cumulative)")
+vec_scale <- 0.8 * max(abs(pcoa_FeOx_pts[, c("X1", "X2")])) / max(abs(vec_FeOxidation_cum[, c("V1", "V2")]))
+vec_FeOxidation_cum[, c("V1", "V2")] <- vec_FeOxidation_cum[, c("V1", "V2")] * vec_scale
+
+# ordisurf of cumulative S (ppm); n = 8, so fixed-df (fx) thin-plate spline with minimal basis
+pcoa_FeOx_xy <- as.matrix(pcoa_FeOx_pts[, c("X1", "X2")])
+S_ppm <- env_list$Cumulative[rownames(pcoa_FeOx_xy), "S.ppm"]
+pcoa_FeOx_surf <- vegan::ordisurf(pcoa_FeOx_xy ~ S_ppm, knots = 3, fx = TRUE, plot = FALSE)
+surf_grid <- with(pcoa_FeOx_surf$grid, expand.grid(X1 = x, X2 = y))
+surf_grid$z <- as.vector(pcoa_FeOx_surf$grid$z)
+
+# plot
+pcoa_FeOx <- ggplot(pcoa_FeOx_pts, aes(x = X1, y = X2, shape = History, colour = Treatment)) +
+  geom_point(size = 4, stroke = 2) +
+  geom_segment(
+    data = vec_FeOxidation_cum, aes(x = 0, xend = V1, y = 0, yend = V2),
+    linewidth = 1, arrow = arrow(length = unit(0.2, "cm")),
+    colour = "black", alpha = 0.4, inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = vec_FeOxidation_cum, aes(x = V1, y = V2, label = labels),
+    size = 4, vjust = -1, parse = TRUE, inherit.aes = FALSE
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+  scale_color_manual(values = c("#997700", "#004488"), name = "Treatment") +
+  scale_shape_manual(values = c(15, 19), name = "History") +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4), order = 1),
+    colour = guide_legend(override.aes = list(pch = 16, size = 4), order = 2)
+  ) +
+  labs(
+    x = glue("PCoA 1 ({pcoa_FeOx_pct[1]}%)"),
+    y = glue("PCoA 2 ({pcoa_FeOx_pct[2]}%)"),
+    title = "Iron Oxidation"
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1.25),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    axis.ticks.length = unit(0.3, "cm"),
+    plot.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
+
+pcoa_FeOx
+```
 
 ### Mantel tests
 
 #### Overall comparisons
 
-```{r Mantel tests}
-# Using Pat Schloss code club as reference: https://www.youtube.com/watch?v=EXNOgmUyPfY
-
-# mantel tests:
-vegan::mantel(FeReductionBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(FeReductionBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(FeReductionBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(denitBC, ThioSOXBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(DNRABC, ThioSOXBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(ANRABC, ThioSOXBC, permutations = 10000, set.seed(42))
-
-# Sulfate reduction ~ Methanogen
-vegan::mantel(methBC, SO4_red_combinedBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methBC, Assim_SO4_redBC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methBC, Dissim_SO4_redBC, permutations = 10000, set.seed(42))
-```
-
 ```{r Mantel heatmap figure (overall comparisons)}
 # List of distance matrices
 matrices <- list(
-  "Iron reduction" = FeReductionBC,
-  "Assimilatory\n sulfate reduction" = Assim_SO4_redBC,
-  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redBC,
-  "Sox pathway" = ThioSOXBC,
-  "Denitrification" = denitBC,
-  "DNRA" = DNRABC,
-  Methanogenesis = methBC
+  "Iron reduction" = pooled$FeReduction$BC,
+  "Iron oxidation" = pooled$FeOxidation$BC,
+  "Dissimilatory\n sulfate reduction" = pooled$Dissim_SO4_red$BC,
+  "Methanogenesis" = pooled$meth$BC
 )
 
 # Initialize matrices to store r and p-values
@@ -1327,6 +1380,13 @@ for (i in 1:n) {
   }
 }
 
+# Holm correction across the unique pairwise tests (upper triangle only);
+# diagonal self-comparisons are not tests and are excluded
+ut <- upper.tri(p_matrix)
+p_matrix[ut] <- p.adjust(p_matrix[ut], method = "holm")
+p_matrix[lower.tri(p_matrix)] <- t(p_matrix)[lower.tri(p_matrix)]
+diag(p_matrix) <- NA
+
 # Melt matrices for ggplot
 r_melt <- melt(r_matrix)
 p_melt <- melt(p_matrix)
@@ -1339,7 +1399,10 @@ combined <- data.frame(
 
 # Create label
 combined$label <- mapply(function(r, p) {
-  if (p < 0.01) {
+  if (is.na(p)) {
+    # Diagonal: self-comparison, no test
+    paste0("italic(r)==", formatC(r, digits = 2, format = "f"))
+  } else if (p < 0.01) {
     sci <- formatC(p, format = "e", digits = 1)  # e.g., "8.0e-03"
     parts <- strsplit(sci, "e")[[1]]
     coeff <- parts[1]
@@ -1388,644 +1451,9 @@ Mantel_heat_overall <- ggplot(combined, aes(Var1, Var2)) +
   axis.line = element_blank()          # optional: remove axis lines
 )
 
-Mantel_heat_overall
+Mantel_heat_overall # "p-values are Holm-adjusted across the 6 pairwise Mantel tests"
 
-#ggsave("../figures/Fe_S_manuscript/Mantel_heat_overall.tiff", plot=Mantel_heat_overall, device="tiff", path=NULL, scale=1, width=10, height=6, dpi=600, limitsize=TRUE ,bg="white")
-
-#ggsave("../figures/Fe_S_manuscript/Mantel_heat_overall.png", plot=Mantel_heat_overall, device="png", path=NULL, scale=1, width=10, height=6, dpi=600, limitsize=TRUE ,bg="white")
-```
-
-#### Hydrology-specific Mantel tests
-
-```{r Wrangling for hydrology-specific Mantel Tests}
-#Filter FeReduction and SO4 reduction (combined) for wet history only:
-SO4_red_combinedRA_WetHist_design <- SO4_red_combinedRA_design %>% dplyr::filter(Hist == "w")
-
-FeReductionRA_WetHist_design <- FeReductionRA_design %>% dplyr::filter(Hist == "w")
-
-#Filter FeReduction and SO4 reduction (combined) for dry history only:
-SO4_red_combinedRA_DryHist_design <- SO4_red_combinedRA_design %>% dplyr::filter(Hist == "d")
-
-FeReductionRA_DryHist_design <- FeReductionRA_design %>% dplyr::filter(Hist == "d")
-
-#Filter FeReduction and SO4 reduction (combined) for wet treatment only:
-SO4_red_combinedRA_WetTreat_design <- SO4_red_combinedRA_design %>% dplyr::filter(Treat == "w")
-
-FeReductionRA_WetTreat_design <- FeReductionRA_design %>% dplyr::filter(Treat == "w")
-
-#Filter FeReduction and SO4 reduction (combined) for dry treatment only:
-SO4_red_combinedRA_DryTreat_design <- SO4_red_combinedRA_design %>% dplyr::filter(Treat == "d")
-
-FeReductionRA_DryTreat_design <- FeReductionRA_design %>% dplyr::filter(Treat == "d")
-
-# Make Bray-Curtis distance matrices for numeric only data in new RA dfs:
-SO4_red_combinedRA_WetHist_BC <- SO4_red_combinedRA_WetHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-FeReductionRA_WetHist_BC <- FeReductionRA_WetHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-SO4_red_combinedRA_DryHist_BC <- SO4_red_combinedRA_DryHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-FeReductionRA_DryHist_BC <- FeReductionRA_DryHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-SO4_red_combinedRA_WetTreat_BC <- SO4_red_combinedRA_WetTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-FeReductionRA_WetTreat_BC <- FeReductionRA_WetTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-SO4_red_combinedRA_DryTreat_BC <- SO4_red_combinedRA_DryTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-FeReductionRA_DryTreat_BC <- FeReductionRA_DryTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-```
-
-```{r Wrangling sulfate reduction and methanogen}
-#Filter ASR, DSR, and Methanogen for wet history only:
-Assim_SO4_redRA_WetHist_design <- Assim_SO4_redRA_design %>% dplyr::filter(Hist == "w")
-
-Dissim_SO4_redRA_WetHist_design <- Dissim_SO4_redRA_design %>% dplyr::filter(Hist == "w")
-
-methRA_WetHist_design <- methRA_design %>% dplyr::filter(Hist == "w")
-
-#Filter ASR, DSR, and Methanogen for dry history only:
-Assim_SO4_redRA_DryHist_design <- Assim_SO4_redRA_design %>% dplyr::filter(Hist == "d")
-
-Dissim_SO4_redRA_DryHist_design <- Dissim_SO4_redRA_design %>% dplyr::filter(Hist == "d")
-
-methRA_DryHist_design <- methRA_design %>% dplyr::filter(Hist == "d")
-
-#Filter ASR, DSR, and Methanogen for wet treatment only:
-Assim_SO4_redRA_WetTreat_design <- Assim_SO4_redRA_design %>% dplyr::filter(Treat == "w")
-
-Dissim_SO4_redRA_WetTreat_design <- Dissim_SO4_redRA_design %>% dplyr::filter(Treat == "w")
-
-methRA_WetTreat_design <- methRA_design %>% dplyr::filter(Treat == "w")
-
-#Filter ASR, DSR, and Methanogen for dry treatment only:
-Assim_SO4_redRA_DryTreat_design <- Assim_SO4_redRA_design %>% dplyr::filter(Treat == "d")
-
-Dissim_SO4_redRA_DryTreat_design <- Dissim_SO4_redRA_design %>% dplyr::filter(Treat == "d")
-
-methRA_DryTreat_design <- methRA_design %>% dplyr::filter(Treat == "d")
-
-# Make Bray-Curtis distance matrices for numeric only data in new RA dfs:
-Assim_SO4_redRA_WetHist_BC <- Assim_SO4_redRA_WetHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Dissim_SO4_redRA_WetHist_BC <- Dissim_SO4_redRA_WetHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-methRA_WetHist_BC <- methRA_WetHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Assim_SO4_redRA_DryHist_BC <- Assim_SO4_redRA_DryHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Dissim_SO4_redRA_DryHist_BC <- Dissim_SO4_redRA_DryHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-methRA_DryHist_BC <- methRA_DryHist_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Assim_SO4_redRA_WetTreat_BC <- Assim_SO4_redRA_WetTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Dissim_SO4_redRA_WetTreat_BC <- Dissim_SO4_redRA_WetTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-methRA_WetTreat_BC <- methRA_WetTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Assim_SO4_redRA_DryTreat_BC <- Assim_SO4_redRA_DryTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-Dissim_SO4_redRA_DryTreat_BC <- Dissim_SO4_redRA_DryTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-
-methRA_DryTreat_BC <- methRA_DryTreat_design[,-c(1:3)] %>%
-  vegdist(method = 'bray')
-```
-
-```{r Hydrology-specific Mantel tests Fe red and combined sulfate red}
-# Fe reduction (FeGenie) and Sulfate reduction (combined) in Wet history:
-vegan::mantel(FeReductionRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (combined) in Dry history:
-vegan::mantel(FeReductionRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (combined) in Wet treatment:
-vegan::mantel(FeReductionRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (combined) in Dry treatment:
-vegan::mantel(FeReductionRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
-```
-
-```{r Hydrology-specific Mantel tests Fe red and Assim sulfate red}
-# Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Wet history:
-vegan::mantel(FeReductionRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Dry history:
-vegan::mantel(FeReductionRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Wet treatment:
-vegan::mantel(FeReductionRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (assimilatory) in Dry treatment:
-vegan::mantel(FeReductionRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
-```
-
-```{r Hydrology-specific Mantel tests Fe red and Dissim sulfate red}
-# Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Wet history:
-vegan::mantel(FeReductionRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Dry history:
-vegan::mantel(FeReductionRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Wet treatment:
-vegan::mantel(FeReductionRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-# Fe reduction (FeGenie) and Sulfate reduction (dissimilatory) in Dry treatment:
-vegan::mantel(FeReductionRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
-```
-
-```{r Hydrology-specific Mantel tests sulfate red and Methanogen}
-# Methanogenesis and sulfate reduction in Wet history:
-vegan::mantel(methRA_WetHist_BC, SO4_red_combinedRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_WetHist_BC, Assim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_WetHist_BC, Dissim_SO4_redRA_WetHist_BC, permutations = 10000, set.seed(42))
-
-# Methanogenesis and sulfate reduction in Dry history:
-vegan::mantel(methRA_DryHist_BC, SO4_red_combinedRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_DryHist_BC, Assim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_DryHist_BC, Dissim_SO4_redRA_DryHist_BC, permutations = 10000, set.seed(42))
-
-# Methanogenesis and sulfate reduction in Wet treatment:
-vegan::mantel(methRA_WetTreat_BC, SO4_red_combinedRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_WetTreat_BC, Assim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_WetTreat_BC, Dissim_SO4_redRA_WetTreat_BC, permutations = 10000, set.seed(42))
-
-# Methanogenesis and sulfate reduction in Dry treatment:
-vegan::mantel(methRA_DryTreat_BC, SO4_red_combinedRA_DryTreat_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_DryTreat_BC, Assim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
-
-vegan::mantel(methRA_DryTreat_BC, Dissim_SO4_redRA_DryTreat_BC, permutations = 10000, set.seed(42))
-```
-
-```{r Mantel matrix: Wet History}
-# Distance matrices, wet history only
-matrices <- list(
-  "Iron reduction" = FeReductionRA_WetHist_BC,
-  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_WetHist_BC,
-  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_WetHist_BC,
-  Methanogenesis = methRA_WetHist_BC
-)
-
-# Initialize matrices to store r and p-values
-n <- length(matrices)
-r_matrix <- matrix(NA, n, n)
-p_matrix <- matrix(NA, n, n)
-rownames(r_matrix) <- colnames(r_matrix) <- names(matrices)
-rownames(p_matrix) <- colnames(p_matrix) <- names(matrices)
-
-# Set the seed ONCE before the loops start
-set.seed(42)
-
-# Run Mantel tests
-for (i in 1:n) {
-  for (j in 1:n) {
-    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
-    r_matrix[i, j] <- test$statistic
-    p_matrix[i, j] <- test$signif
-  }
-}
-
-# Melt matrices for ggplot
-r_melt <- melt(r_matrix)
-p_melt <- melt(p_matrix)
-combined1 <- data.frame(
-  Var1 = r_melt$Var1,
-  Var2 = r_melt$Var2,
-  r = round(r_melt$value, 2),
-  p = p_melt$value
-)
-
-# Create label
-combined1$label <- mapply(function(r, p) {
-  if (p < 0.01) {
-    sci <- formatC(p, format = "e", digits = 1)  # e.g., "8.0e-03"
-    parts <- strsplit(sci, "e")[[1]]
-    coeff <- parts[1]
-    exponent <- as.numeric(parts[2])
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", coeff, " %*% 10^", exponent, ")")
-  } else {
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", formatC(p, format = "f", digits = 2), ")")
-  }
-}, combined1$r, combined1$p)
-
-# Define consistent matrix order
-matrix_names <- names(matrices)
-
-# Set both Var1 and Var2 to the same factor levels
-combined1$Var1 <- factor(combined1$Var1, levels = matrix_names)
-combined1$Var2 <- factor(combined1$Var2, levels = matrix_names)
-
-# Mask upper triangle: Var1 is column (X), Var2 is row (Y)
-combined1$mask <- match(combined1$Var1, matrix_names) > match(combined1$Var2, matrix_names)
-
-# Flag diagonal cells
-combined1$is_diagonal <- as.character(combined1$Var1) == as.character(combined1$Var2)
-
-# Set text color: black for diagonal, white otherwise
-combined1$text_color <- ifelse(combined1$is_diagonal, "black", "white")
-```
-
-```{r Mantel heatmap: Dry Hist}
-# Distance matrices, dry history only
-matrices <- list(
-  "Iron reduction" = FeReductionRA_DryHist_BC,
-  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_DryHist_BC,
-  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_DryHist_BC,
-  Methanogenesis = methRA_DryHist_BC
-)
-
-# Initialize matrices to store r and p-values
-n <- length(matrices)
-r_matrix <- matrix(NA, n, n)
-p_matrix <- matrix(NA, n, n)
-rownames(r_matrix) <- colnames(r_matrix) <- names(matrices)
-rownames(p_matrix) <- colnames(p_matrix) <- names(matrices)
-
-# Set the seed ONCE before the loops start
-set.seed(42)
-
-# Run Mantel tests
-for (i in 1:n) {
-  for (j in 1:n) {
-    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
-    r_matrix[i, j] <- test$statistic
-    p_matrix[i, j] <- test$signif
-  }
-}
-
-# Melt matrices for ggplot
-r_melt <- melt(r_matrix)
-p_melt <- melt(p_matrix)
-combined2 <- data.frame(
-  Var1 = r_melt$Var1,
-  Var2 = r_melt$Var2,
-  r = round(r_melt$value, 2),
-  p = p_melt$value
-)
-
-# Create label
-combined2$label <- mapply(function(r, p) {
-  if (p < 0.01) {
-    sci <- formatC(p, format = "e", digits = 1)  # e.g., "8.0e-03"
-    parts <- strsplit(sci, "e")[[1]]
-    coeff <- parts[1]
-    exponent <- as.numeric(parts[2])
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", coeff, " %*% 10^", exponent, ")")
-  } else {
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", formatC(p, format = "f", digits = 2), ")")
-  }
-}, combined2$r, combined2$p)
-
-# Define consistent matrix order
-matrix_names <- names(matrices)
-
-# Set both Var1 and Var2 to the same factor levels
-combined2$Var1 <- factor(combined2$Var1, levels = matrix_names)
-combined2$Var2 <- factor(combined2$Var2, levels = matrix_names)
-
-# Mask upper triangle: Var1 is column (X), Var2 is row (Y)
-combined2$mask <- match(combined2$Var1, matrix_names) > match(combined2$Var2, matrix_names)
-
-# Flag diagonal cells
-combined2$is_diagonal <- as.character(combined2$Var1) == as.character(combined2$Var2)
-
-# Set text color: black for diagonal, white otherwise
-combined2$text_color <- ifelse(combined2$is_diagonal, "black", "white")
-```
-
-```{r Mantel heatmap: Wet Treatment}
-# Distance matrices, wet treatment only
-matrices <- list(
-  "Iron reduction" = FeReductionRA_WetTreat_BC,
-  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_WetTreat_BC,
-  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_WetTreat_BC,
-  Methanogenesis = methRA_WetTreat_BC
-)
-
-# Initialize matrices to store r and p-values
-n <- length(matrices)
-r_matrix <- matrix(NA, n, n)
-p_matrix <- matrix(NA, n, n)
-rownames(r_matrix) <- colnames(r_matrix) <- names(matrices)
-rownames(p_matrix) <- colnames(p_matrix) <- names(matrices)
-
-# Set the seed ONCE before the loops start
-set.seed(42)
-
-# Run Mantel tests
-for (i in 1:n) {
-  for (j in 1:n) {
-    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
-    r_matrix[i, j] <- test$statistic
-    p_matrix[i, j] <- test$signif
-  }
-}
-
-# Melt matrices for ggplot
-r_melt <- melt(r_matrix)
-p_melt <- melt(p_matrix)
-combined3 <- data.frame(
-  Var1 = r_melt$Var1,
-  Var2 = r_melt$Var2,
-  r = round(r_melt$value, 2),
-  p = p_melt$value
-)
-
-# Create label
-combined3$label <- mapply(function(r, p) {
-  if (p < 0.01) {
-    sci <- formatC(p, format = "e", digits = 1)  # e.g., "8.0e-03"
-    parts <- strsplit(sci, "e")[[1]]
-    coeff <- parts[1]
-    exponent <- as.numeric(parts[2])
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", coeff, " %*% 10^", exponent, ")")
-  } else {
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", formatC(p, format = "f", digits = 2), ")")
-  }
-}, combined3$r, combined3$p)
-
-# Define consistent matrix order
-matrix_names <- names(matrices)
-
-# Set both Var1 and Var2 to the same factor levels
-combined3$Var1 <- factor(combined3$Var1, levels = matrix_names)
-combined3$Var2 <- factor(combined3$Var2, levels = matrix_names)
-
-# Mask upper triangle: Var1 is column (X), Var2 is row (Y)
-combined3$mask <- match(combined3$Var1, matrix_names) > match(combined3$Var2, matrix_names)
-
-# Flag diagonal cells
-combined3$is_diagonal <- as.character(combined3$Var1) == as.character(combined3$Var2)
-
-# Set text color: black for diagonal, white otherwise
-combined3$text_color <- ifelse(combined3$is_diagonal, "black", "white")
-```
-
-```{r Mantel heatmap: Dry Treatment}
-# Distance matrices, dry treatment only
-matrices <- list(
-  "Iron reduction" = FeReductionRA_DryTreat_BC,
-  "Assimilatory\n sulfate reduction" = Assim_SO4_redRA_DryTreat_BC,
-  "Dissimilatory\n sulfate reduction" = Dissim_SO4_redRA_DryTreat_BC,
-  Methanogenesis = methRA_DryTreat_BC
-)
-
-# Initialize matrices to store r and p-values
-n <- length(matrices)
-r_matrix <- matrix(NA, n, n)
-p_matrix <- matrix(NA, n, n)
-rownames(r_matrix) <- colnames(r_matrix) <- names(matrices)
-rownames(p_matrix) <- colnames(p_matrix) <- names(matrices)
-
-# Set the seed ONCE before the loops start
-set.seed(42)
-
-# Run Mantel tests
-for (i in 1:n) {
-  for (j in 1:n) {
-    test <- vegan::mantel(matrices[[i]], matrices[[j]], permutations = 9999)
-    r_matrix[i, j] <- test$statistic
-    p_matrix[i, j] <- test$signif
-  }
-}
-
-# Melt matrices for ggplot
-r_melt <- melt(r_matrix)
-p_melt <- melt(p_matrix)
-combined4 <- data.frame(
-  Var1 = r_melt$Var1,
-  Var2 = r_melt$Var2,
-  r = round(r_melt$value, 2),
-  p = p_melt$value
-)
-
-# Create label
-combined4$label <- mapply(function(r, p) {
-  if (p < 0.01) {
-    sci <- formatC(p, format = "e", digits = 1)  # e.g., "8.0e-03"
-    parts <- strsplit(sci, "e")[[1]]
-    coeff <- parts[1]
-    exponent <- as.numeric(parts[2])
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", coeff, " %*% 10^", exponent, ")")
-  } else {
-    paste0("atop(italic(r)==", formatC(r, digits = 2, format = "f"),
-           ", italic(p)==", formatC(p, format = "f", digits = 2), ")")
-  }
-}, combined4$r, combined4$p)
-
-# Define consistent matrix order
-matrix_names <- names(matrices)
-
-# Set both Var1 and Var2 to the same factor levels
-combined4$Var1 <- factor(combined4$Var1, levels = matrix_names)
-combined4$Var2 <- factor(combined4$Var2, levels = matrix_names)
-
-# Mask upper triangle: Var1 is column (X), Var2 is row (Y)
-combined4$mask <- match(combined4$Var1, matrix_names) > match(combined4$Var2, matrix_names)
-
-# Flag diagonal cells
-combined4$is_diagonal <- as.character(combined4$Var1) == as.character(combined4$Var2)
-
-# Set text color: black for diagonal, white otherwise
-combined4$text_color <- ifelse(combined4$is_diagonal, "black", "white")
-```
-
-```{r Global r min and r max for viridis scale}
-# Step 1: Get global min and max r values
-global_r_min <- min(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
-global_r_max <- max(c(combined1$r, combined2$r, combined3$r, combined4$r), na.rm = TRUE)
-```
-
-```{r Heatmap 1: Wet History}
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_1 <- ggplot(combined1, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined1, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined1, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined1, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Wet History") +
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  theme(axis.text.x = element_blank(),
-  axis.text = element_text(size = 12, face = "bold"),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_1
-```
-
-```{r Heatmap 2: Dry History}
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_2 <- ggplot(combined2, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined2, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined2, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined2, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Dry History") +
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
-  axis.text = element_text(size = 12, face = "bold"),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_2
-```
-
-```{r Heatmap 3: Wet Treatment}
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_3 <- ggplot(combined3, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined3, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined3, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined3, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Wet Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  axis.text = element_text(size = 12, face = "bold"),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_3
-```
-
-```{r Heatmap 4: Dry Treatment}
-# Plot heatmap with masked lower triangle
-MantelHeatHydro_4 <- ggplot(combined4, aes(Var1, Var2)) +
-  geom_tile(data = subset(combined4, mask), fill = "white", color = "white") +
-  geom_tile(data = subset(combined4, !mask), aes(fill = r), color = "white") +
-  geom_text(data = subset(combined4, !mask), aes(label = label, color = text_color), size = 4, parse = TRUE) +
-  scale_color_identity()+  # use actual color values from the data
-  scale_fill_viridis_c(option = "viridis", name = "Mantel r", limits = c(global_r_min, global_r_max)) +
-  scale_y_discrete(limits = rev(matrix_names)) +  # reverse Y-axis
-  scale_x_discrete(limits = matrix_names) +  # non reversed X-axis
-  theme_minimal() +
-  labs(x = "", y = "", title = "Dry Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-  axis.text = element_text(size = 12, face = "bold"),
-  axis.text.y = element_blank(),
-  axis.ticks.x = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),  # remove major grid lines
-  panel.grid.minor = element_blank(),  # remove minor grid lines
-  axis.line = element_blank()          # optional: remove axis lines
-)
-
-MantelHeatHydro_4
-```
-
-```{r 4-panel Hydrology Mantel Heatmaps}
-MantelHeatHydro_ALL <- ggarrange(MantelHeatHydro_1, MantelHeatHydro_2, MantelHeatHydro_3, MantelHeatHydro_4, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2, legend = "right", common.legend = T, align = "hv")
-
-MantelHeatHydro_ALL
-
-#ggsave("../figures/Fe_S_manuscript/MantelHeatHydro.tiff", plot=MantelHeatHydro_ALL, device="tiff", path=NULL, scale=1, width=13, height=9, dpi=600, limitsize=TRUE ,bg="white")
-
-#ggsave("../figures/Fe_S_manuscript/MantelHeatHydro.png", plot=MantelHeatHydro_ALL, device="png", path=NULL, scale=1, width=13, height=9, dpi=600, limitsize=TRUE ,bg="white")
-```
-
-```{r Plotting BC correlation}
-# These plots were made in https://www.youtube.com/watch?v=EXNOgmUyPfY, but are not required to run Mantel Test
-
-# Make a tibble of bray-curtis matrix
-FeReductionBC_tbl <- FeReductionBC %>%
-  as.matrix() %>%
-  as_tibble(rownames="A") %>%
-  pivot_longer(-A, names_to = "B", values_to = "bray_Fe")
-
-SO4_red_combinedBC_tbl <- SO4_red_combinedBC %>%
-  as.matrix() %>%
-  as_tibble(rownames="A") %>%
-  pivot_longer(-A, names_to = "B", values_to = "bray_SO4")
-
-Assim_SO4_redBC_tbl <- Assim_SO4_redBC %>%
-  as.matrix() %>%
-  as_tibble(rownames="A") %>%
-  pivot_longer(-A, names_to = "B", values_to = "bray_Assim_SO4")
-
-#Dissim_SO4_red
-
-#meth
-
-# combine the respective tibbles:
-combined_BC_tbls <- inner_join(FeReductionBC_tbl, SO4_red_combinedBC_tbl, by=c("A", "B")) # not sure if I need this.
-
-combined_BC_FeRed_AssSO4 <- inner_join(FeReductionBC_tbl, Assim_SO4_redBC_tbl, by=c("A", "B"))
-
-# plotting:
-combined_BC_tbls %>%
-  filter(A < B) %>%
-  ggplot(aes(x=bray_Fe, y=bray_SO4)) +
-  geom_point()+
-  geom_smooth(se=FALSE)
-
-combined_BC_FeRed_AssSO4 %>%
-  filter(A < B) %>%
-  ggplot(aes(x=bray_Fe, y=bray_Assim_SO4)) +
-  geom_point()+
-  geom_smooth(se=FALSE)
-
-# DSR ~ FeR
-
-# ASR ~ Meth
-
-# DSR ~ Meth
-
-# (hydrology-specifics)
+#ggsave("../figures/Fe_S_manuscript/Mantel_heat_overall.png", plot=Mantel_heat_overall, device="png", path=NULL, scale=1, width=18, height=15, units = "cm", dpi=600, limitsize=TRUE ,bg="white")
 ```
 
 # Plotting
@@ -2074,9 +1502,7 @@ field_chem_plot
 
 ## Post incubation soil Fe and S concentrations
 
-```{r}
-library(emmeans)
-
+```{r Extract EMMs}
 # Extract EMMs for Iron (Fe)
 emms_Fe <- emmeans(model_Fe, ~ treatment * plant * history)
 df_Fe <- as.data.frame(emms_Fe)
@@ -2096,7 +1522,7 @@ plot_Fe <- ggplot(df_Fe, aes(x = treatment, y = emmean, color = plant, group = p
   # Add points for the estimated means
   geom_point(position = pd, size = 3) +
   # Add lines connecting the means to highlight the interaction slopes
-  geom_line(position = pd, size = 1, alpha = 0.7) +
+  geom_line(position = pd, linewidth = 1, alpha = 0.7) +
   # Facet by historical field conditions
   facet_wrap(~ history, labeller = labeller(history = c("D" = "History: Dry", "W" = "History: Wet"))) +
   # Clean aesthetics
